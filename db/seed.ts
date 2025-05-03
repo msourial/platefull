@@ -6,13 +6,15 @@ async function seed() {
   try {
     console.log("Seeding database...");
 
-    // Seed categories
+    // Seed categories - Boustan Menu Categories
     const existingCategories = await db.query.categories.findMany();
     const categoryData = [
-      { name: "Burgers", description: "Delicious burgers with premium ingredients", icon: "lunch_dining", displayOrder: 1 },
-      { name: "Pizza", description: "Handcrafted pizzas with fresh toppings", icon: "local_pizza", displayOrder: 2 },
-      { name: "Pasta", description: "Authentic Italian pasta dishes", icon: "ramen_dining", displayOrder: 3 },
-      { name: "Drinks", description: "Refreshing beverages", icon: "local_bar", displayOrder: 4 },
+      { name: "Pitas & Wraps", description: "Delicious pitas and wraps with fresh ingredients", icon: "flatware", displayOrder: 1 },
+      { name: "Platters", description: "Complete meal platters with sides", icon: "restaurant", displayOrder: 2 },
+      { name: "Salads", description: "Fresh salads with a variety of toppings", icon: "eco", displayOrder: 3 },
+      { name: "Sides", description: "Delicious sides to complement your meal", icon: "dinner_dining", displayOrder: 4 },
+      { name: "Sweets", description: "Sweet treats and desserts", icon: "icecream", displayOrder: 5 },
+      { name: "Beverages", description: "Refreshing drinks", icon: "local_bar", displayOrder: 6 },
     ];
 
     for (const category of categoryData) {
@@ -30,89 +32,212 @@ async function seed() {
     const allCategories = await db.query.categories.findMany();
     const categoriesMap = new Map(allCategories.map(c => [c.name, c.id]));
 
-    // Seed menu items
+    // Seed menu items - Boustan Menu Items
     const existingMenuItems = await db.query.menuItems.findMany();
     const menuItemsData = [
+      // Pitas & Wraps
       {
-        name: "Classic Burger",
-        description: "Beef patty, lettuce, tomato, cheese, and our special sauce",
+        name: "Shish Taouk Pita",
+        description: "Marinated chicken breast pieces, garlic sauce, lettuce, tomatoes, and pickles",
         price: "8.99",
-        imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Burgers"),
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/c35f77a1-a767-4dd2-b187-63b80a25d4f5-retina-large.jpg",
+        categoryId: categoriesMap.get("Pitas & Wraps"),
         isAvailable: true
       },
       {
-        name: "Deluxe Burger",
-        description: "Double beef patty, bacon, avocado, cheese, and premium toppings",
-        price: "12.99",
-        imageUrl: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Burgers"),
+        name: "Beef Shawarma Pita",
+        description: "Thin slices of marinated beef, garlic sauce, lettuce, tomatoes, and pickles",
+        price: "9.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/11ca3d23-9294-49c3-95ce-bbd8a9dfc0d3-retina-large.jpg",
+        categoryId: categoriesMap.get("Pitas & Wraps"),
         isAvailable: true
       },
       {
-        name: "Veggie Burger",
-        description: "Plant-based patty with fresh vegetables and vegan sauce",
-        price: "10.99",
-        imageUrl: "https://images.unsplash.com/photo-1520072959219-c595dc870360?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Burgers"),
+        name: "Chicken Shawarma Pita",
+        description: "Thin slices of marinated chicken, garlic sauce, lettuce, tomatoes, and pickles",
+        price: "9.49",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/f033a084-df30-412a-b384-48826ed174bc-retina-large.jpg",
+        categoryId: categoriesMap.get("Pitas & Wraps"),
         isAvailable: true
       },
       {
-        name: "Margherita Pizza",
-        description: "Classic pizza with tomato sauce, mozzarella, and basil",
+        name: "Falafel Pita",
+        description: "Deep-fried patties made from ground chickpeas, tahini sauce, lettuce, tomatoes, and pickles",
+        price: "7.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/c6c4dec4-0bdd-4108-84d7-98ba9ce30253-retina-large.jpg",
+        categoryId: categoriesMap.get("Pitas & Wraps"),
+        isAvailable: true
+      },
+      {
+        name: "Kafta Pita",
+        description: "Grilled skewers of ground beef mixed with parsley, onions, and spices",
+        price: "9.49",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/0689a56d-7aa7-4bf6-bf8c-21d4dcf9f4e6-retina-large.jpg",
+        categoryId: categoriesMap.get("Pitas & Wraps"),
+        isAvailable: true
+      },
+      {
+        name: "Shish Taouk Wrap",
+        description: "Marinated chicken breast pieces, garlic sauce, lettuce, tomatoes, and pickles wrapped in a thin lavash bread",
         price: "11.99",
-        imageUrl: "https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Pizza"),
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/5a3dc2a3-94ac-4f22-934a-ecfe5414583e-retina-large.jpg",
+        categoryId: categoriesMap.get("Pitas & Wraps"),
+        isAvailable: true
+      },
+      
+      // Platters
+      {
+        name: "Shish Taouk Platter",
+        description: "Marinated chicken breast pieces served with garlic sauce, hummus, salad, and rice or fries",
+        price: "17.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/34f2d87e-1b71-42ec-aabc-5bef98dafcf7-retina-large.jpg",
+        categoryId: categoriesMap.get("Platters"),
         isAvailable: true
       },
       {
-        name: "Pepperoni Pizza",
-        description: "Pizza with tomato sauce, mozzarella, and pepperoni",
-        price: "13.99",
-        imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Pizza"),
+        name: "Beef Shawarma Platter",
+        description: "Thin slices of marinated beef served with garlic sauce, hummus, salad, and rice or fries",
+        price: "18.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/26a9e5a4-8b1b-4c01-934b-39a49de93c38-retina-large.jpg",
+        categoryId: categoriesMap.get("Platters"),
         isAvailable: true
       },
       {
-        name: "Spaghetti Bolognese",
-        description: "Spaghetti with rich meat sauce and parmesan",
-        price: "12.99",
-        imageUrl: "https://images.unsplash.com/photo-1622973536968-3ead9e780960?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Pasta"),
+        name: "Chicken Shawarma Platter",
+        description: "Thin slices of marinated chicken served with garlic sauce, hummus, salad, and rice or fries",
+        price: "17.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/24bd04c3-3c2b-43d1-9517-6c36f07b4a87-retina-large.jpg",
+        categoryId: categoriesMap.get("Platters"),
         isAvailable: true
       },
       {
-        name: "Fettuccine Alfredo",
-        description: "Fettuccine pasta with creamy alfredo sauce",
-        price: "11.99",
-        imageUrl: "https://images.unsplash.com/photo-1645112411341-6c4fd023882c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Pasta"),
+        name: "Mixed Grill Platter",
+        description: "Combination of shish taouk, kafta, and beef with garlic sauce, hummus, salad, and rice or fries",
+        price: "22.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/6b9ca1eb-b47b-4c42-bd59-3a0d7b335ded-retina-large.jpg",
+        categoryId: categoriesMap.get("Platters"),
         isAvailable: true
       },
       {
-        name: "Coca-Cola",
-        description: "16 oz can",
-        price: "2.99",
-        imageUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Drinks"),
+        name: "Vegetarian Platter",
+        description: "Falafel, hummus, baba ghanouj, tabbouleh, fattoush, and pita bread",
+        price: "15.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/8ca7da6e-5e4a-4ccd-9c3c-16c8a1a8f317-retina-large.jpg",
+        categoryId: categoriesMap.get("Platters"),
+        isAvailable: true
+      },
+      
+      // Salads
+      {
+        name: "Fattoush",
+        description: "Mixed greens, vegetables, and toasted pita with sumac dressing",
+        price: "7.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/ec3b5d03-7f29-426e-93f5-2c147ffe5a72-retina-large.jpg",
+        categoryId: categoriesMap.get("Salads"),
         isAvailable: true
       },
       {
-        name: "Diet Coke",
-        description: "16 oz can",
-        price: "2.99",
-        imageUrl: "https://images.unsplash.com/photo-1629203432180-71e9b18d315e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Drinks"),
+        name: "Tabbouleh",
+        description: "Finely chopped parsley, tomatoes, mint, onion, with bulgur and lemon dressing",
+        price: "7.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/3e11e5a1-c6df-4d14-8ca3-e3e2c7192a44-retina-large.jpg",
+        categoryId: categoriesMap.get("Salads"),
+        isAvailable: true
+      },
+      {
+        name: "Greek Salad",
+        description: "Mixed greens, feta cheese, olives, tomatoes, cucumbers with olive oil dressing",
+        price: "8.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/c1b14867-73e0-404a-a638-2668ef3ee476-retina-large.jpg",
+        categoryId: categoriesMap.get("Salads"),
+        isAvailable: true
+      },
+      
+      // Sides
+      {
+        name: "Hummus",
+        description: "Chickpea dip with tahini, lemon juice, and olive oil",
+        price: "5.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/1f87a63a-5b02-4f7d-9807-80d841edce79-retina-large.jpg",
+        categoryId: categoriesMap.get("Sides"),
+        isAvailable: true
+      },
+      {
+        name: "Baba Ghanouj",
+        description: "Roasted eggplant dip with tahini, lemon juice, and olive oil",
+        price: "6.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/bbb03957-8141-42d9-8819-485dd2e0fa0a-retina-large.jpg",
+        categoryId: categoriesMap.get("Sides"),
+        isAvailable: true
+      },
+      {
+        name: "Garlic Potatoes",
+        description: "Crispy potato cubes with garlic and herbs",
+        price: "5.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/0bea0ae2-9f31-4fec-84df-9a5e1ee7bd84-retina-large.jpg",
+        categoryId: categoriesMap.get("Sides"),
+        isAvailable: true
+      },
+      {
+        name: "Fries",
+        description: "Crispy golden french fries",
+        price: "4.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/8cdb6182-9f1e-4a9c-9abe-ec52eef46311-retina-large.jpg",
+        categoryId: categoriesMap.get("Sides"),
+        isAvailable: true
+      },
+      
+      // Sweets
+      {
+        name: "Baklava",
+        description: "Layered pastry with nuts and honey syrup",
+        price: "3.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/cc9b4eb6-64c9-446d-a08b-5f7c65de5934-retina-large.jpg",
+        categoryId: categoriesMap.get("Sweets"),
+        isAvailable: true
+      },
+      {
+        name: "Knafeh",
+        description: "Sweet cheese pastry with syrup",
+        price: "5.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/1b2e7c33-0bca-43d4-9f11-f7bfec55e344-retina-large.jpg",
+        categoryId: categoriesMap.get("Sweets"),
+        isAvailable: true
+      },
+      
+      // Beverages
+      {
+        name: "Ayran",
+        description: "Traditional yogurt drink",
+        price: "3.49",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/39b9f91a-6d7c-48c7-a7df-c50be22bd2be-retina-large.jpg",
+        categoryId: categoriesMap.get("Beverages"),
+        isAvailable: true
+      },
+      {
+        name: "Minted Iced Tea",
+        description: "Refreshing iced tea with fresh mint",
+        price: "3.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/d4b24bc4-6190-48ac-a7d9-9e8fab0aca9c-retina-large.jpg",
+        categoryId: categoriesMap.get("Beverages"),
+        isAvailable: true
+      },
+      {
+        name: "Soft Drinks",
+        description: "Assorted carbonated beverages",
+        price: "2.49",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/cbaa29fd-c6aa-41a2-8639-1ba96af25e33-retina-large.jpg",
+        categoryId: categoriesMap.get("Beverages"),
         isAvailable: true
       },
       {
         name: "Bottled Water",
-        description: "500ml bottle",
+        description: "500ml bottle of mineral water",
         price: "1.99",
-        imageUrl: "https://images.unsplash.com/photo-1616118132534-381148898bb4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=500&q=80",
-        categoryId: categoriesMap.get("Drinks"),
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/c3d95c6f-8dd4-4c99-9a90-3026add29c3a-retina-large.jpg",
+        categoryId: categoriesMap.get("Beverages"),
         isAvailable: true
-      },
+      }
     ];
 
     for (const menuItem of menuItemsData) {
@@ -134,28 +259,64 @@ async function seed() {
 
     const customizationOptionsData = [
       {
-        menuItemId: menuItemsNameMap.get("Classic Burger"),
-        name: "Patty Preparation",
-        choices: ["Medium Rare", "Medium", "Medium Well", "Well Done"],
+        menuItemId: menuItemsNameMap.get("Shish Taouk Pita"),
+        name: "Sauce Options",
+        choices: ["Garlic Sauce", "Tahini Sauce", "Hot Sauce", "No Sauce"],
         isRequired: true
       },
       {
-        menuItemId: menuItemsNameMap.get("Classic Burger"),
-        name: "Toppings",
-        choices: ["Lettuce", "Tomato", "Pickles", "Onions"],
+        menuItemId: menuItemsNameMap.get("Shish Taouk Pita"),
+        name: "Extra Toppings",
+        choices: ["Extra Pickles", "Extra Tomatoes", "Extra Lettuce", "Turnips"],
         isRequired: false
       },
       {
-        menuItemId: menuItemsNameMap.get("Deluxe Burger"),
-        name: "Patty Preparation",
-        choices: ["Medium Rare", "Medium", "Medium Well", "Well Done"],
+        menuItemId: menuItemsNameMap.get("Beef Shawarma Pita"),
+        name: "Sauce Options",
+        choices: ["Garlic Sauce", "Tahini Sauce", "Hot Sauce", "No Sauce"],
         isRequired: true
       },
       {
-        menuItemId: menuItemsNameMap.get("Deluxe Burger"),
-        name: "Toppings",
-        choices: ["Lettuce", "Tomato", "Pickles", "Onions", "Avocado", "Bacon"],
+        menuItemId: menuItemsNameMap.get("Beef Shawarma Pita"),
+        name: "Extra Toppings",
+        choices: ["Extra Pickles", "Extra Tomatoes", "Extra Lettuce", "Turnips"],
         isRequired: false
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Chicken Shawarma Pita"),
+        name: "Sauce Options",
+        choices: ["Garlic Sauce", "Tahini Sauce", "Hot Sauce", "No Sauce"],
+        isRequired: true
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Falafel Pita"),
+        name: "Sauce Options",
+        choices: ["Tahini Sauce", "Hot Sauce", "No Sauce"],
+        isRequired: true
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Mixed Grill Platter"),
+        name: "Side Options",
+        choices: ["Rice", "Fries", "Half Rice & Half Fries"],
+        isRequired: true
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Shish Taouk Platter"),
+        name: "Side Options",
+        choices: ["Rice", "Fries", "Half Rice & Half Fries"],
+        isRequired: true
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Beef Shawarma Platter"),
+        name: "Side Options",
+        choices: ["Rice", "Fries", "Half Rice & Half Fries"],
+        isRequired: true
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Chicken Shawarma Platter"),
+        name: "Side Options",
+        choices: ["Rice", "Fries", "Half Rice & Half Fries"],
+        isRequired: true
       }
     ];
 
