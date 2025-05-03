@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 10%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    
+    --primary: 206 100% 40%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    
+    --accent: 54 100% 60%;
+    --accent-foreground: 0 0% 10%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --chart-1: 206 100% 40%;
+    --chart-2: 54 100% 60%;
+    --chart-3: 120 60% 45%;
+    --chart-4: 260 100% 60%;
+    --chart-5: 330 80% 60%;
+    
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 206 100% 40%;
+    
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 206 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 206 100% 40%;
+    
+    --radius: 0.5rem;
+  }
+  
+  .dark {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 98%;
+    
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 206 100% 40%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 65%;
+    
+    --accent: 54 100% 60%;
+    --accent-foreground: 0 0% 10%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --chart-1: 206 100% 50%;
+    --chart-2: 54 100% 60%;
+    --chart-3: 120 60% 50%;
+    --chart-4: 260 100% 70%;
+    --chart-5: 330 80% 70%;
+    
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 206 100% 40%;
+    
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 206 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 16%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 206 100% 40%;
+  }
+  
+  /* Telegram colors */
+  .telegram-blue {
+    background-color: #0088CC;
+  }
+  
+  .text-telegram {
+    color: #0088CC;
+  }
+  
+  .bg-telegram {
+    background-color: #0088CC;
+  }
+  
+  .border-telegram {
+    border-color: #0088CC;
+  }
+  
+  /* Restaurant colors */
+  .bg-restaurant-green {
+    background-color: #36AE7C;
+  }
+  
+  .text-restaurant-green {
+    color: #36AE7C;
+  }
+  
+  .bg-restaurant-orange {
+    background-color: #FF9500;
+  }
+  
+  .text-restaurant-orange {
+    color: #FF9500;
+  }
+}
