@@ -466,6 +466,14 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             }
           }
           
+          // Check if this is an answer to a suggestion (from a no_drinks, no_sides callback)
+          // This uses the conversation context to determine if we're in a suggestion flow
+          const isFollowupSuggestion = conversation.context && (
+            conversation.context.pendingSuggestSides || 
+            conversation.context.pendingSuggestDrinks ||
+            conversation.context.pendingSuggestDesserts
+          );
+          
           // Add the item to the order
           log(`Adding menu item ${menuItemId} to order ${orderId}`, 'telegram-callback');
           try {
@@ -476,6 +484,37 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             throw new Error(`Failed to add item to order: ${addItemError}`);
           }
           
+          // Update conversation context
+          if (conversation.context) {
+            if (conversation.context.pendingSuggestSides) {
+              // If we were suggesting sides, move to suggesting drinks next
+              await storage.updateConversation(conversation.id, {
+                context: {
+                  ...conversation.context,
+                  pendingSuggestSides: false,
+                  pendingSuggestDrinks: true
+                }
+              });
+            } else if (conversation.context.pendingSuggestDrinks) {
+              // If we were suggesting drinks, move to suggesting desserts next
+              await storage.updateConversation(conversation.id, {
+                context: {
+                  ...conversation.context,
+                  pendingSuggestDrinks: false,
+                  pendingSuggestDesserts: true
+                }
+              });
+            } else if (conversation.context.pendingSuggestDesserts) {
+              // If we were suggesting desserts, clear the suggestion flow
+              await storage.updateConversation(conversation.id, {
+                context: {
+                  ...conversation.context,
+                  pendingSuggestDesserts: false
+                }
+              });
+            }
+          }
+          
           // If the item has customization options, ask for them
           if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
             await askForCustomizations(bot, chatId, menuItem, orderId);
@@ -483,22 +522,57 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             // Check the category of the item to determine appropriate follow-up
             const category = await storage.getCategoryById(menuItem.categoryId);
             
-            if (category) {
+            if (category && !isFollowupSuggestion) {
               // For main dishes (pitas, wraps, platters), ask about sides
               if (['Pitas', 'Wraps', 'Platters', 'Main Dishes'].includes(category.name)) {
+                // Update context to mark that we're suggesting sides
+                await storage.updateConversation(conversation.id, {
+                  context: {
+                    ...conversation.context,
+                    pendingSuggestSides: true
+                  }
+                });
                 await suggestSides(bot, chatId, orderId, menuItem);
                 return;
               }
               
               // For sides, suggest drinks if not already ordered
               if (['Sides', 'Salads'].includes(category.name)) {
+                // Update context to mark that we're suggesting drinks
+                await storage.updateConversation(conversation.id, {
+                  context: {
+                    ...conversation.context,
+                    pendingSuggestDrinks: true
+                  }
+                });
                 await suggestDrinks(bot, chatId, orderId);
                 return;
               }
               
               // For drinks, suggest desserts if not already ordered
               if (['Beverages', 'Drinks'].includes(category.name)) {
+                // Update context to mark that we're suggesting desserts
+                await storage.updateConversation(conversation.id, {
+                  context: {
+                    ...conversation.context,
+                    pendingSuggestDesserts: true
+                  }
+                });
                 await suggestDesserts(bot, chatId, orderId);
+                return;
+              }
+            } else if (isFollowupSuggestion) {
+              // Continue the existing suggestion flow
+              if (conversation.context && conversation.context.pendingSuggestDrinks) {
+                await suggestDrinks(bot, chatId, orderId);
+                return;
+              } else if (conversation.context && conversation.context.pendingSuggestDesserts) {
+                await suggestDesserts(bot, chatId, orderId);
+                return;
+              } else {
+                // If we've completed the suggestion flow or something went wrong,
+                // just ask if they want anything else
+                await askForMoreItems(bot, chatId, orderId);
                 return;
               }
             }
@@ -782,6 +856,14 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
         const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
         
         if (activeOrder) {
+          // Update conversation context to indicate we're moving to drinks
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              pendingSuggestSides: false,
+              pendingSuggestDrinks: true
+            }
+          });
           await suggestDrinks(bot, chatId, activeOrder.id);
         } else {
           await bot.sendMessage(
@@ -810,6 +892,14 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
         const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
         
         if (activeOrder) {
+          // Update conversation context to indicate we're moving to desserts
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              pendingSuggestDrinks: false,
+              pendingSuggestDesserts: true
+            }
+          });
           await suggestDesserts(bot, chatId, activeOrder.id);
         } else {
           await bot.sendMessage(
@@ -838,6 +928,13 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
         const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
         
         if (activeOrder) {
+          // Update conversation context to indicate we've completed the suggestion flow
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              pendingSuggestDesserts: false
+            }
+          });
           await askForMoreItems(bot, chatId, activeOrder.id);
         } else {
           await bot.sendMessage(
