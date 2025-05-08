@@ -302,16 +302,40 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
           if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
             await askForCustomizations(bot, chatId, menuItem, orderId);
           } else {
+            // Check the category of the item to determine appropriate follow-up
+            const category = await storage.getCategoryById(menuItem.categoryId);
+            
+            if (category) {
+              // For main dishes (pitas, wraps, platters), ask about sides
+              if (['Pitas', 'Wraps', 'Platters', 'Main Dishes'].includes(category.name)) {
+                await suggestSides(bot, chatId, orderId, menuItem);
+                return;
+              }
+              
+              // For sides, suggest drinks if not already ordered
+              if (['Sides', 'Salads'].includes(category.name)) {
+                await suggestDrinks(bot, chatId, orderId);
+                return;
+              }
+              
+              // For drinks, suggest desserts if not already ordered
+              if (['Beverages', 'Drinks'].includes(category.name)) {
+                await suggestDesserts(bot, chatId, orderId);
+                return;
+              }
+            }
+            
+            // Default fallback if no specific suggestions
             await bot.sendMessage(
               chatId,
-              `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
+              `✅ Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else? 🍽️`,
               {
                 parse_mode: 'Markdown',
                 reply_markup: {
                   inline_keyboard: [
-                    [{ text: "View My Order", callback_data: "view_order" }],
-                    [{ text: "Add More Items", callback_data: "menu" }],
-                    [{ text: "Checkout", callback_data: "checkout" }]
+                    [{ text: "🛒 View My Order", callback_data: "view_order" }],
+                    [{ text: "📋 Add More Items", callback_data: "menu" }],
+                    [{ text: "💳 Checkout", callback_data: "checkout" }]
                   ]
                 }
               }
@@ -456,16 +480,40 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
           if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
             await askForCustomizations(bot, chatId, menuItem, orderId);
           } else {
+            // Check the category of the item to determine appropriate follow-up
+            const category = await storage.getCategoryById(menuItem.categoryId);
+            
+            if (category) {
+              // For main dishes (pitas, wraps, platters), ask about sides
+              if (['Pitas', 'Wraps', 'Platters', 'Main Dishes'].includes(category.name)) {
+                await suggestSides(bot, chatId, orderId, menuItem);
+                return;
+              }
+              
+              // For sides, suggest drinks if not already ordered
+              if (['Sides', 'Salads'].includes(category.name)) {
+                await suggestDrinks(bot, chatId, orderId);
+                return;
+              }
+              
+              // For drinks, suggest desserts if not already ordered
+              if (['Beverages', 'Drinks'].includes(category.name)) {
+                await suggestDesserts(bot, chatId, orderId);
+                return;
+              }
+            }
+            
+            // Default fallback if no specific suggestions
             await bot.sendMessage(
               chatId,
-              `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
+              `✅ Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else? 🍽️`,
               {
                 parse_mode: 'Markdown',
                 reply_markup: {
                   inline_keyboard: [
-                    [{ text: "View My Order", callback_data: "view_order" }],
-                    [{ text: "Add More Items", callback_data: "menu" }],
-                    [{ text: "Checkout", callback_data: "checkout" }]
+                    [{ text: "🛒 View My Order", callback_data: "view_order" }],
+                    [{ text: "📋 Add More Items", callback_data: "menu" }],
+                    [{ text: "💳 Checkout", callback_data: "checkout" }]
                   ]
                 }
               }
@@ -537,14 +585,71 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             
             await bot.sendMessage(
               chatId,
-              `Great! I've updated your *${itemName}* with *${optionName}: ${choice}*. Would you like anything else?`,
+              `✅ Great! I've updated your *${itemName}* with *${optionName}: ${choice}*`,
               {
-                parse_mode: 'Markdown',
+                parse_mode: 'Markdown'
+              }
+            );
+            
+            // Check if there are more customization options for this item
+            if (menuItem && menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
+              // Check if there's any customization option that hasn't been chosen yet
+              const existingCustomizations = orderItem.customizations || {};
+              const remainingOptions = menuItem.customizationOptions.filter(option => 
+                !existingCustomizations[option.name]
+              );
+              
+              if (remainingOptions.length > 0) {
+                // First try to get the next customization option
+                const nextOption = remainingOptions[0];
+                const choices = nextOption.choices as string[];
+                
+                const keyboard = choices.map(choice => [
+                  { text: choice, callback_data: `customization:${orderItem.id}:${nextOption.name}:${choice}` }
+                ]);
+                
+                await bot.sendMessage(
+                  chatId,
+                  `Please select ${nextOption.name} for your ${menuItem.name}: 👇`,
+                  createInlineKeyboard(keyboard)
+                );
+                return;
+              }
+            }
+            
+            // No more customization options, proceed to suggest sides
+            const category = await storage.getCategoryById(menuItem.categoryId);
+            
+            if (category) {
+              // For main dishes (pitas, wraps, platters), ask about sides
+              if (['Pitas', 'Wraps', 'Platters', 'Main Dishes'].includes(category.name)) {
+                await suggestSides(bot, chatId, orderId, menuItem);
+                return;
+              }
+              
+              // For sides, suggest drinks if not already ordered
+              if (['Sides', 'Salads'].includes(category.name)) {
+                await suggestDrinks(bot, chatId, orderId);
+                return;
+              }
+              
+              // For drinks, suggest desserts if not already ordered
+              if (['Beverages', 'Drinks'].includes(category.name)) {
+                await suggestDesserts(bot, chatId, orderId);
+                return;
+              }
+            }
+            
+            // Default fallback if no specific suggestions
+            await bot.sendMessage(
+              chatId,
+              "Would you like anything else? 🍽️",
+              {
                 reply_markup: {
                   inline_keyboard: [
-                    [{ text: "View My Order", callback_data: "view_order" }],
-                    [{ text: "Add More Items", callback_data: "menu" }],
-                    [{ text: "Checkout", callback_data: "checkout" }]
+                    [{ text: "🛒 View My Order", callback_data: "view_order" }],
+                    [{ text: "📋 Add More Items", callback_data: "menu" }],
+                    [{ text: "💳 Checkout", callback_data: "checkout" }]
                   ]
                 }
               }
@@ -670,6 +775,90 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       }
       break;
       
+    case 'no_sides':
+      // User declined sides, move to drinks
+      try {
+        log(`User declined sides`, 'telegram-callback');
+        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+        
+        if (activeOrder) {
+          await suggestDrinks(bot, chatId, activeOrder.id);
+        } else {
+          await bot.sendMessage(
+            chatId,
+            "Would you like to see our menu?",
+            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          );
+        }
+      } catch (error) {
+        log(`Error handling no_sides callback: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "What would you like to do next?",
+          createInlineKeyboard([
+            [{ text: "View Menu", callback_data: "menu" }],
+            [{ text: "View Order", callback_data: "view_order" }]
+          ])
+        );
+      }
+      break;
+      
+    case 'no_drinks':
+      // User declined drinks, move to desserts
+      try {
+        log(`User declined drinks`, 'telegram-callback');
+        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+        
+        if (activeOrder) {
+          await suggestDesserts(bot, chatId, activeOrder.id);
+        } else {
+          await bot.sendMessage(
+            chatId,
+            "Would you like to see our menu?",
+            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          );
+        }
+      } catch (error) {
+        log(`Error handling no_drinks callback: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "What would you like to do next?",
+          createInlineKeyboard([
+            [{ text: "View Menu", callback_data: "menu" }],
+            [{ text: "View Order", callback_data: "view_order" }]
+          ])
+        );
+      }
+      break;
+      
+    case 'no_dessert':
+      // User declined desserts, ask if they want to checkout
+      try {
+        log(`User declined desserts`, 'telegram-callback');
+        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+        
+        if (activeOrder) {
+          await askForMoreItems(bot, chatId, activeOrder.id);
+        } else {
+          await bot.sendMessage(
+            chatId,
+            "Would you like to see our menu?",
+            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          );
+        }
+      } catch (error) {
+        log(`Error handling no_dessert callback: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "What would you like to do next?",
+          createInlineKeyboard([
+            [{ text: "View Menu", callback_data: "menu" }],
+            [{ text: "View Order", callback_data: "view_order" }]
+          ])
+        );
+      }
+      break;
+
     case 'empty_cart':
       try {
         log(`Processing empty_cart request for user ${telegramUser.id}`, 'telegram-callback');
