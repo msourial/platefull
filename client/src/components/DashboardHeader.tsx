@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { TimeIndicator } from "./TimeIndicator";
-import { useTimeThemeContext } from "../contexts/TimeThemeContext";
+import { useTimeTheme } from "../hooks/use-time-theme";
 
 export default function DashboardHeader() {
   const [location] = useLocation();
   const { theme, setTheme } = useTheme();
-  const timeTheme = useTimeThemeContext();
+  const timeTheme = useTimeTheme();
 
   const isActive = (path: string) => {
     return location === path;

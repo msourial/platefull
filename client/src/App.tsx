@@ -8,7 +8,6 @@ import Orders from "@/pages/orders";
 import Menu from "@/pages/menu";
 import Settings from "@/pages/settings";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { TimeThemeProvider } from "./contexts/TimeThemeContext";
 
 function Router() {
   return (
@@ -27,12 +26,10 @@ function Router() {
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="restaurant-bot-theme">
-      <TimeThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <Router />
-          <Toaster />
-        </QueryClientProvider>
-      </TimeThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <Router />
+        <Toaster />
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

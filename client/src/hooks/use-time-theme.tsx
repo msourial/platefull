@@ -73,15 +73,33 @@ export function useTimeTheme(): TimeTheme {
     const updateTimeOfDay = () => {
       const hours = new Date().getHours();
       
+      let newTimeOfDay: TimeOfDay;
       if (hours >= 5 && hours < 12) {
-        setTimeOfDay('morning');
+        newTimeOfDay = 'morning';
       } else if (hours >= 12 && hours < 17) {
-        setTimeOfDay('afternoon');
+        newTimeOfDay = 'afternoon';
       } else if (hours >= 17 && hours < 20) {
-        setTimeOfDay('evening');
+        newTimeOfDay = 'evening';
       } else {
-        setTimeOfDay('night');
+        newTimeOfDay = 'night';
       }
+      
+      setTimeOfDay(newTimeOfDay);
+      
+      // Apply CSS variables
+      const theme = themes[newTimeOfDay];
+      document.documentElement.style.setProperty('--primary-color', theme.primaryColor);
+      document.documentElement.style.setProperty('--secondary-color', theme.secondaryColor);
+      document.documentElement.style.setProperty('--accent-color', theme.accentColor);
+      document.documentElement.style.setProperty('--text-color', theme.textColor);
+      document.documentElement.style.setProperty('--background-color', theme.backgroundColor);
+      document.documentElement.style.setProperty('--card-color', theme.cardColor);
+      document.documentElement.style.setProperty('--gradient-start', theme.gradientStart);
+      document.documentElement.style.setProperty('--gradient-end', theme.gradientEnd);
+      
+      // Update the background color of the body
+      document.body.classList.remove('morning', 'afternoon', 'evening', 'night');
+      document.body.classList.add(newTimeOfDay);
     };
 
     // Set initial theme

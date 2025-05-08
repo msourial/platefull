@@ -38,7 +38,7 @@ const TimeLabels = {
  * with an appropriate icon and applies time-based styling
  */
 export function TimeIndicator() {
-  const theme = useTimeThemeContext();
+  const theme = useTimeTheme();
   const TimeIcon = TimeIcons[theme.timeOfDay];
 
   return (
