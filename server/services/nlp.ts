@@ -14,6 +14,7 @@ interface NlpResponse {
     reasons: string[];
   }[];
   followUpQuestions?: string[];
+  dietaryPreference?: string;
 }
 
 /**

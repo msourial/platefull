@@ -620,10 +620,9 @@ async function processNaturalLanguageInput(
           ])
         );
       }
-    } else if (response.intent === "recommendation") {
-      // AI has provided recommendations based on user query
+    } else if (response.intent === "dietary_recommendation" || response.intent === "recommendation") {
       // Log the response for debugging
-      log(`Recommendation response received from AI with ${response.recommendations?.length || 0} items`, 'telegram-ai');
+      log(`${response.intent} response received from AI with ${response.recommendations?.length || 0} items`, 'telegram-ai');
       
       // Send the AI's personalized message first
       await bot.sendMessage(
