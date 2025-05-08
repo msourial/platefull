@@ -123,7 +123,7 @@ export const sendMenuItems = async (chatId: number, categoryId: number) => {
       
       const keyboard = [
         [{
-          text: `Add to order`,
+          text: `Add to order - $${parseFloat(item.price.toString()).toFixed(2)}`,
           callback_data: `add_item:${item.id}`
         }]
       ];
