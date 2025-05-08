@@ -8,6 +8,7 @@ import Orders from "@/pages/orders";
 import Menu from "@/pages/menu";
 import Settings from "@/pages/settings";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { TimeThemeProvider } from "./contexts/TimeThemeContext";
 
 function Router() {
   return (

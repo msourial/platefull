@@ -319,6 +319,44 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
         });
         
         return response;
+      } else if (dietaryPreference === 'high-calorie' || dietaryPreference === 'high-protein') {
+        // Handler for high-calorie, post-workout, gym-related requests
+        const response = {
+          intent: "dietary_recommendation",
+          dietaryPreference: dietaryPreference,
+          message: `Perfect for after a workout! I'd recommend our Mix Shawarma Platter or Beef Kafta Platter - both are high in protein and calories to fuel your muscles. Our platters come with meat, rice, garlic sauce, and salad for a complete post-gym meal. Would you like to try one of these?`,
+          recommendations: [
+            {
+              name: "Mix Shawarma Platter",
+              category: "Platters",
+              reasons: ["Combination of chicken and beef shawarma for maximum protein", "Complete with rice, hummus, and salad for balanced recovery"]
+            },
+            {
+              name: "Beef Kafta Platter",
+              category: "Platters",
+              reasons: ["High-protein ground beef mixed with herbs and spices", "Served with rice and sides to restore energy"]
+            },
+            {
+              name: "Chicken Shawarma Platter",
+              category: "Platters",
+              reasons: ["Lean protein option with marinated chicken", "Request extra meat for additional protein"]
+            }
+          ],
+          followUpQuestions: [
+            "Would you like extra meat for more protein?",
+            "Do you prefer chicken or beef for your protein source?",
+            "Would you like to add a side of hummus for extra calories and healthy fats?"
+          ]
+        };
+        
+        // Add bot response to conversation history
+        await storage.addMessageToConversation({
+          conversationId: conversation.id,
+          text: response.message,
+          isFromUser: false
+        });
+        
+        return response;
       }
     }
     
@@ -370,14 +408,33 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
 // Helper functions for intent recognition
 
 function isGreeting(text: string): boolean {
-  const normalizedText = text.toLowerCase();
-  const greetings = [
-    'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 
-    'howdy', 'yo', 'hiya', 'sup', 'what\'s up', 'whats up', 'how are you', 'hola', 
-    'bonjour', 'salam', 'marhaba', 'start', 'begin', '/start', 'let\'s start', 
-    'lets start', 'hi there', 'hello there', 'get started'
+  const normalizedText = text.toLowerCase().trim();
+  
+  // Check for command-style greetings first (exact match)
+  if (normalizedText === '/start') {
+    return true;
+  }
+  
+  // Short text greetings (if message is just a greeting)
+  const shortGreetings = [
+    'hi', 'hello', 'hey', 'howdy', 'yo', 'hiya', 'sup', 'hola', 'bonjour', 'salam', 'marhaba'
   ];
-  return greetings.some(greeting => normalizedText.includes(greeting));
+  
+  // Check if message is ONLY a greeting (1-word greeting)
+  if (shortGreetings.includes(normalizedText)) {
+    return true;
+  }
+  
+  // Check for exact greeting phrases (full phrase match)
+  const exactGreetingPhrases = [
+    'good morning', 'good afternoon', 'good evening', 'what\'s up', 'whats up', 
+    'how are you', 'let\'s start', 'lets start', 'hi there', 'hello there', 'get started'
+  ];
+  
+  // Check if any exact greeting phrase is present
+  return exactGreetingPhrases.some(phrase => normalizedText === phrase);
+  
+  // Note: We're no longer using includes() to avoid false positives on longer messages
 }
 
 function isMenuRequest(text: string): boolean {
@@ -694,12 +751,16 @@ function hasDietaryPreference(text: string): boolean {
     'dairy-free': /(dairy.?free|no dairy|lactose|without dairy|no milk|milk.?free|lactos)/i,
     halal: /(halal|muslim friendly|muslim.?friendly|islamic dietary|islam food)/i,
     'nut-free': /(nut.?free|no nuts|without nuts|allergic to nuts|nut allergy)/i,
-    keto: /(keto|ketogenic|low carb|low.?carb|law carb|lo carb|lo.?carb|no carb|carb free|low calorie|lo cal)/i,
+    keto: /(keto|ketogenic|low carb|low.?carb|law carb|lo carb|lo.?carb|no carb|carb free|lo cal)/i,
     allergy: /(allerg(y|ic|ies)|intolerance|cannot eat|can't eat|avoid)/i,
     healthy: /(health(y|ier)|diet(ing)?|low.?calorie|high.?protein|protein rich|no bread|paleo|atkins)/i,
     'sugar-free': /(sugar.?free|no sugar|diabetic|diabetes)/i,
     spicy: /(spicy|hot|fire|heat)/i,
-    mild: /(mild|not spicy|no spice)/i
+    mild: /(mild|not spicy|no spice)/i,
+    // Add fitness and high-calorie patterns
+    'high-calorie': /(high.?calor(y|ie)|calorie dense|bulk(ing)?|gain weight|gain muscle|protein.?rich|post.?workout|after.?workout|after gym|post gym|energy dense|caloric|lots of calories)/i,
+    'low-calorie': /(low.?calor(y|ie)|diet|weight.?loss|cutting|lean|slimming)/i,
+    'high-protein': /(high.?protein|protein.?rich|muscle.?build|workout|gym|fitness|exercise|training)/i
   };
   
   // Check if any pattern matches
@@ -755,9 +816,13 @@ function extractDietaryPreference(text: string): string {
     'dairy-free': /(dairy.?free|no dairy|lactose|without dairy|no milk|milk.?free|lactos)/i,
     halal: /(halal|muslim friendly|muslim.?friendly|islamic dietary|islam food)/i,
     'nut-free': /(nut.?free|no nuts|without nuts|allergic to nuts|nut allergy)/i,
-    keto: /(keto|ketogenic|low carb|low.?carb|law carb|lo carb|lo.?carb|no carb|carb free|low calorie|lo cal)/i,
+    keto: /(keto|ketogenic|low carb|low.?carb|law carb|lo carb|lo.?carb|no carb|carb free|lo cal)/i,
     spicy: /(spicy|hot|fire|super hot|extra spicy|spice)/i,
-    mild: /(mild|not spicy|no spice|medium spice|little spice)/i
+    mild: /(mild|not spicy|no spice|medium spice|little spice)/i,
+    // Add fitness and high-calorie patterns
+    'high-calorie': /(high.?calor(y|ie)|calorie dense|bulk(ing)?|gain weight|gain muscle|protein.?rich|post.?workout|after.?workout|after gym|post gym|energy dense|caloric|lots of calories)/i,
+    'low-calorie': /(low.?calor(y|ie)|diet|weight.?loss|cutting|lean|slimming)/i,
+    'high-protein': /(high.?protein|protein.?rich|muscle.?build|workout|gym|fitness|exercise|training)/i
   };
   
   // Check each pattern against the text

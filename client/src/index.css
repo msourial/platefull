@@ -9,9 +9,21 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    transition: background-color 0.5s ease, color 0.5s ease;
   }
   
   :root {
+    /* Default values - will be overridden by time-based theme */
+    --primary-color: #3498DB;
+    --secondary-color: #5DADE2;
+    --accent-color: #F1C40F;
+    --text-color: #2C3E50;
+    --background-color: #ECF0F1;
+    --card-color: #FFFFFF;
+    --gradient-start: #64B5F6;
+    --gradient-end: #1976D2;
+    
+    /* Base Shadcn variables */
     --background: 0 0% 98%;
     --foreground: 0 0% 10%;
     
@@ -135,5 +147,64 @@
   
   .text-restaurant-orange {
     color: #FF9500;
+  }
+  
+  /* Time-based theme utility classes */
+  .time-primary-bg {
+    background-color: var(--primary-color);
+  }
+  
+  .time-secondary-bg {
+    background-color: var(--secondary-color);
+  }
+  
+  .time-accent-bg {
+    background-color: var(--accent-color);
+  }
+  
+  .time-card-bg {
+    background-color: var(--card-color);
+  }
+  
+  .time-bg {
+    background-color: var(--background-color);
+  }
+  
+  .time-text {
+    color: var(--text-color);
+  }
+  
+  .time-border {
+    border-color: var(--secondary-color);
+  }
+  
+  .time-gradient {
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  }
+  
+  .time-gradient-text {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  
+  /* Time-of-day indicator */
+  .time-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--gradient-start);
+    color: #FFFFFF;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  
+  .time-indicator svg {
+    width: 1rem;
+    height: 1rem;
   }
 }
