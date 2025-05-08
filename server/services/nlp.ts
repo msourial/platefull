@@ -591,24 +591,59 @@ function extractSpecialInstructions(text: string, item: string): string | undefi
  * @returns Whether the text contains dietary preference indicators
  */
 function hasDietaryPreference(text: string): boolean {
-  const dietaryKeywords = [
-    'vegetarian', 'vegan', 'plant-based', 'plant based', 'no meat', 'without meat', 
-    'gluten-free', 'gluten free', 'dairy-free', 'dairy free', 'lactose', 'halal',
-    'no dairy', 'meat-free', 'vegetable', 'vegetables', 'meatless', 'veggie',
-    'allergy', 'allergic', 'allergies', 'intolerance', 'no nuts', 'nut-free', 
-    'no gluten', 'health', 'diet', 'dieting', 'healthy', 'low calorie',
-    'low-calorie', 'spicy', 'mild', 'hot', 'vertarin', 'vegitarian', 'veg',
-    'keto', 'ketogenic', 'low carb', 'low-carb', 'low carbs', 'no carbs', 'carb-free',
-    'high protein', 'high-protein', 'protein rich', 'no bread', 'paleo', 'atkins',
-    'sugar-free', 'sugar free', 'no sugar', 'diabetic', 'diabetes'
+  const lowerText = text.toLowerCase();
+  
+  // Define RegExp patterns for common dietary preferences with typo tolerance - same patterns used in extractDietaryPreference
+  const dietaryPatterns: Record<string, RegExp> = {
+    vegetarian: /(vegetarian|veggie|no meat|meat.?free|meatless|vertarin|vegitarian|veg|veg(e|i)t(a|e)ri(a|e)n)/i,
+    vegan: /(vegan|plant.?based|no animal|100% plant|dairy.?free and meat.?free|veggies only|ve+ga+n)/i,
+    'gluten-free': /(gluten.?free|no gluten|gluten.?less|celiac|no wheat|without gluten|glutin)/i,
+    'dairy-free': /(dairy.?free|no dairy|lactose|without dairy|no milk|milk.?free|lactos)/i,
+    halal: /(halal|muslim friendly|muslim.?friendly|islamic dietary|islam food)/i,
+    'nut-free': /(nut.?free|no nuts|without nuts|allergic to nuts|nut allergy)/i,
+    keto: /(keto|ketogenic|low carb|low.?carb|law carb|lo carb|lo.?carb|no carb|carb free|low calorie|lo cal)/i,
+    allergy: /(allerg(y|ic|ies)|intolerance|cannot eat|can't eat|avoid)/i,
+    healthy: /(health(y|ier)|diet(ing)?|low.?calorie|high.?protein|protein rich|no bread|paleo|atkins)/i,
+    'sugar-free': /(sugar.?free|no sugar|diabetic|diabetes)/i,
+    spicy: /(spicy|hot|fire|heat)/i,
+    mild: /(mild|not spicy|no spice)/i
+  };
+  
+  // Check if any pattern matches
+  for (const [preference, pattern] of Object.entries(dietaryPatterns)) {
+    if (pattern.test(lowerText)) {
+      log(`Detected dietary preference '${preference}' in: "${text}"`, 'nlp-service-debug');
+      return true;
+    }
+  }
+  
+  // Check for questions about dietary specific options
+  const dietaryQuestions = [
+    'do you have', 'is there', 'are there', 'what options',
+    'what dishes', 'which items', 'anything for', 'any options for',
+    'food for', 'meals for', 'options for', 'suitable for',
+    'what should', 'what can', 'can i get', 'what do you recommend for'
   ];
   
-  const lowerText = text.toLowerCase();
-  const hasPreference = dietaryKeywords.some(keyword => lowerText.includes(keyword));
+  // If not found directly, check for question format + dietary term
+  for (const question of dietaryQuestions) {
+    if (lowerText.includes(question)) {
+      const qIndex = lowerText.indexOf(question);
+      if (qIndex >= 0) {
+        const afterQuestion = lowerText.substring(qIndex + question.length);
+        // Check if the text after the question contains any of our dietary patterns
+        for (const pattern of Object.values(dietaryPatterns)) {
+          if (pattern.test(afterQuestion)) {
+            log(`Detected dietary preference question in: "${text}"`, 'nlp-service-debug');
+            return true;
+          }
+        }
+      }
+    }
+  }
   
-  log(`Checking dietary preferences in: "${text}" - Result: ${hasPreference}`, 'nlp-service-debug');
-  
-  return hasPreference;
+  log(`No dietary preferences detected in: "${text}"`, 'nlp-service-debug');
+  return false;
 }
 
 /**
@@ -619,60 +654,24 @@ function hasDietaryPreference(text: string): boolean {
 function extractDietaryPreference(text: string): string {
   const normalizedText = text.toLowerCase();
   
-  // Vegetarian related keywords (including common misspellings)
-  if (normalizedText.includes('vegetarian') || normalizedText.includes('veggie') || 
-      normalizedText.includes('no meat') || normalizedText.includes('meat-free') || 
-      normalizedText.includes('meatless') || normalizedText.includes('vertarin') || 
-      normalizedText.includes('vegitarian') || normalizedText.includes('veg')) {
-    return 'vegetarian';
-  }
+  // Define RegExp patterns for common dietary preferences with typo tolerance
+  const dietaryPatterns: Record<string, RegExp> = {
+    vegetarian: /(vegetarian|veggie|no meat|meat.?free|meatless|vertarin|vegitarian|veg|veg(e|i)t(a|e)ri(a|e)n)/i,
+    vegan: /(vegan|plant.?based|no animal|100% plant|dairy.?free and meat.?free|veggies only|ve+ga+n)/i,
+    'gluten-free': /(gluten.?free|no gluten|gluten.?less|celiac|no wheat|without gluten|glutin)/i,
+    'dairy-free': /(dairy.?free|no dairy|lactose|without dairy|no milk|milk.?free|lactos)/i,
+    halal: /(halal|muslim friendly|muslim.?friendly|islamic dietary|islam food)/i,
+    'nut-free': /(nut.?free|no nuts|without nuts|allergic to nuts|nut allergy)/i,
+    keto: /(keto|ketogenic|low carb|low.?carb|law carb|lo carb|lo.?carb|no carb|carb free|low calorie|lo cal)/i,
+    spicy: /(spicy|hot|fire|super hot|extra spicy|spice)/i,
+    mild: /(mild|not spicy|no spice|medium spice|little spice)/i
+  };
   
-  // Vegan related keywords
-  if (normalizedText.includes('vegan') || normalizedText.includes('plant-based') || 
-      normalizedText.includes('plant based') || normalizedText.includes('no animal products')) {
-    return 'vegan';
-  }
-  
-  // Gluten-free related keywords
-  if (normalizedText.includes('gluten-free') || normalizedText.includes('gluten free') || 
-      normalizedText.includes('no gluten') || normalizedText.includes('without gluten')) {
-    return 'gluten-free';
-  }
-  
-  // Dairy-free related keywords
-  if (normalizedText.includes('dairy-free') || normalizedText.includes('dairy free') || 
-      normalizedText.includes('no dairy') || normalizedText.includes('lactose') || 
-      normalizedText.includes('without dairy')) {
-    return 'dairy-free';
-  }
-  
-  // Halal related keywords
-  if (normalizedText.includes('halal')) {
-    return 'halal';
-  }
-  
-  // Nut-free related keywords
-  if (normalizedText.includes('nut-free') || normalizedText.includes('nut free') || 
-      normalizedText.includes('no nuts') || normalizedText.includes('without nuts') || 
-      normalizedText.includes('allergic to nuts')) {
-    return 'nut-free';
-  }
-  
-  // Keto and low-carb related keywords
-  if (normalizedText.includes('keto') || normalizedText.includes('ketogenic') || 
-      normalizedText.includes('low carb') || normalizedText.includes('low-carb') ||
-      normalizedText.includes('no carbs') || normalizedText.includes('carb-free')) {
-    return 'keto';
-  }
-  
-  // Spice level preferences
-  if (normalizedText.includes('spicy') || normalizedText.includes('hot')) {
-    return 'spicy';
-  }
-  
-  if (normalizedText.includes('mild') || normalizedText.includes('not spicy') || 
-      normalizedText.includes('no spice')) {
-    return 'mild';
+  // Check each pattern against the text
+  for (const [preference, pattern] of Object.entries(dietaryPatterns)) {
+    if (pattern.test(normalizedText)) {
+      return preference;
+    }
   }
   
   // Default fallback for other health/dietary mentions

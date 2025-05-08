@@ -681,6 +681,63 @@ async function processNaturalLanguageInput(
       return;
     }
     
+    if (containsDietaryPreference(msg.text!, 'vegetarian')) {
+      // Directly handle vegetarian requests with typo tolerance
+      log(`Directly handling vegetarian dietary preference for message: "${msg.text}"`, 'telegram-nlp');
+      await bot.sendMessage(
+        msg.chat.id,
+        "For vegetarian options at Boustan, I'd recommend our Falafel Wrap, Vegetarian Platter, or our delicious Hummus with fresh pita bread. All of these are made without meat and are very popular!"
+      );
+      await bot.sendMessage(
+        msg.chat.id,
+        "Our Vegetarian Platter is especially popular, featuring hummus, tabbouleh, grape leaves, and falafel. Would you like to add that to your order?",
+        createInlineKeyboard([
+          [{ text: "Add Vegetarian Platter", callback_data: "menu_item:15" }],
+          [{ text: "Add Falafel Wrap", callback_data: "menu_item:3" }],
+          [{ text: "See More Options", callback_data: "special_request:vegetarian" }]
+        ])
+      );
+      return;
+    }
+    
+    if (containsDietaryPreference(msg.text!, 'gluten_free')) {
+      // Directly handle gluten-free requests with typo tolerance
+      log(`Directly handling gluten-free dietary preference for message: "${msg.text}"`, 'telegram-nlp');
+      await bot.sendMessage(
+        msg.chat.id,
+        "For gluten-free options at Boustan, I'd recommend our Chicken or Beef Shawarma Salad (without pita), or any of our protein platters without the pita bread. You can also enjoy our hummus with vegetables instead of bread."
+      );
+      await bot.sendMessage(
+        msg.chat.id,
+        "Our Chicken Shawarma Salad is a great gluten-free choice, featuring marinated chicken with fresh vegetables. Would you like to add that to your order?",
+        createInlineKeyboard([
+          [{ text: "Add Chicken Shawarma Salad", callback_data: "menu_item:23" }],
+          [{ text: "Add Beef Shawarma Salad", callback_data: "menu_item:24" }],
+          [{ text: "See More Options", callback_data: "special_request:gluten_free" }]
+        ])
+      );
+      return;
+    }
+    
+    if (containsDietaryPreference(msg.text!, 'halal')) {
+      // Directly handle halal requests with typo tolerance
+      log(`Directly handling halal dietary preference for message: "${msg.text}"`, 'telegram-nlp');
+      await bot.sendMessage(
+        msg.chat.id,
+        "Good news! All of Boustan's meat options are halal certified. Our chicken and beef are prepared according to Islamic dietary guidelines, so you can enjoy any of our meat dishes with confidence."
+      );
+      await bot.sendMessage(
+        msg.chat.id,
+        "Our most popular halal items are the Chicken Shawarma and Beef Kafta. Would you like to add one of these to your order?",
+        createInlineKeyboard([
+          [{ text: "Add Chicken Shawarma", callback_data: "menu_item:1" }],
+          [{ text: "Add Beef Kafta", callback_data: "menu_item:8" }],
+          [{ text: "See Full Menu", callback_data: "menu" }]
+        ])
+      );
+      return;
+    }
+    
     // Process the natural language using OpenAI
     const response = await processNaturalLanguage(msg.text!, telegramUser.telegramId);
     
