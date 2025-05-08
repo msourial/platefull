@@ -509,31 +509,76 @@ async function processNaturalLanguageInput(
         const validItems = recommendedItems.filter(item => item !== null);
         
         if (validItems.length > 0) {
-          // Create buttons for each recommendation
-          const keyboard = validItems.map(item => [
-            { text: `Add ${item!.name} - $${parseFloat(item!.price.toString()).toFixed(2)}`, callback_data: `add_item:${item!.id}` }
-          ]);
+          // Display each recommendation with details first
+          for (let i = 0; i < validItems.length; i++) {
+            const item = validItems[i];
+            const recommendation = response.recommendations![i];
+            
+            if (item && recommendation) {
+              // Create message with item details and reasons
+              let itemMessage = `*${item.name}* - $${parseFloat(item.price.toString()).toFixed(2)}\n`;
+              itemMessage += `${item.description || 'Authentic Lebanese cuisine'}\n\n`;
+              
+              // Add reasons why this was recommended if available
+              if (recommendation.reasons && recommendation.reasons.length > 0) {
+                itemMessage += "*Why I recommend this:*\n";
+                recommendation.reasons.forEach(reason => {
+                  itemMessage += `• ${reason}\n`;
+                });
+              }
+              
+              // Add button to add this item to cart
+              const keyboard = [
+                [{ text: `Add to Order ($${parseFloat(item.price.toString()).toFixed(2)})`, callback_data: `add_item:${item.id}` }]
+              ];
+              
+              await bot.sendMessage(
+                msg.chat.id,
+                itemMessage,
+                {
+                  parse_mode: 'Markdown',
+                  reply_markup: {
+                    inline_keyboard: keyboard
+                  }
+                }
+              );
+            }
+          }
           
-          // Add a "View Menu" button at the end
-          keyboard.push([{ text: "View Full Menu", callback_data: "menu" }]);
+          // Add navigation options after recommendations
+          const navKeyboard = [
+            [{ text: "View Full Menu", callback_data: "menu" }],
+            [{ text: "Get More Recommendations", callback_data: "special_request" }]
+          ];
           
           await bot.sendMessage(
             msg.chat.id,
-            "Would you like to add any of these to your order?",
-            createInlineKeyboard(keyboard)
+            "Would you like to explore more options?",
+            createInlineKeyboard(navKeyboard)
           );
         }
         
         // If we have follow-up questions, create buttons for them
         if (response.followUpQuestions && response.followUpQuestions.length > 0) {
-          const questionKeyboard = response.followUpQuestions.map((question, index) => [
-            { text: question, callback_data: `follow_up:${index}` }
-          ]);
+          // Format the questions as buttons with better prompts
+          const questionKeyboard = response.followUpQuestions.map((question, index) => {
+            // Limit question length for button display
+            const displayText = question.length > 40 
+              ? question.substring(0, 37) + '...' 
+              : question;
+              
+            return [{ text: displayText, callback_data: `follow_up:${index}` }];
+          });
           
           await bot.sendMessage(
             msg.chat.id,
-            "You can also ask me more about:",
-            createInlineKeyboard(questionKeyboard)
+            "*Would you like to know more?*\nI can answer these questions for you:",
+            {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: questionKeyboard
+              }
+            }
           );
         }
       } else {
