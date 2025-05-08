@@ -123,6 +123,8 @@ Response format (for internal processing):
         (item.description && item.description.toLowerCase().includes(simpleSearch))
       );
       
+      log(`Search for "${simpleSearch}" found ${directMatches.length} matches in menu items`, 'ai-service');
+      
       if (directMatches.length > 0) {
         log(`Found ${directMatches.length} direct matches for "${simpleSearch}"`, 'ai-service');
         // Return structured response with direct matches
@@ -290,7 +292,7 @@ export async function getPersonalizedSuggestions(telegramUserId: string): Promis
         suggestions: [
           { name: "Chicken Shawarma Pita", category: "Pitas & Wraps", reason: "Our most popular item" },
           { name: "Beef Shawarma Platter", category: "Platters", reason: "Perfect for a satisfying meal" },
-          { name: "Falafel Wrap", category: "Pitas & Wraps", reason: "Great vegetarian option" }
+          { name: "Falafel Pita", category: "Pitas & Wraps", reason: "Great vegetarian option" }
         ],
         message: "Here are some of our most popular options that customers love:"
       };
@@ -353,7 +355,7 @@ Response format (for internal processing):
     return {
       suggestions: [
         { name: "Chicken Shawarma Pita", category: "Pitas & Wraps", reason: "Our signature dish" },
-        { name: "Falafel Wrap", category: "Pitas & Wraps", reason: "A delicious vegetarian option" },
+        { name: "Falafel Pita", category: "Pitas & Wraps", reason: "A delicious vegetarian option" },
         { name: "Beef Shawarma Platter", category: "Platters", reason: "A complete meal with our famous shawarma" }
       ],
       message: "I think you might enjoy these popular items from our menu:"

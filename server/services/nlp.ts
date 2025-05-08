@@ -451,15 +451,15 @@ function extractOrderItem(text: string): { item: string, specialInstructions?: s
     const singleWord = words[0].toLowerCase();
     log(`Processing single-word food item: "${singleWord}"`, 'nlp-service-debug');
     
-    // Basic food mapping for single words
+    // Basic food mapping for single words - using exact menu item names from database
     const directFoodMappings: Record<string, string> = {
       'beef': 'Beef Shawarma Platter',
       'chicken': 'Chicken Shawarma Pita',
-      'falafel': 'Falafel Wrap',
+      'falafel': 'Falafel Pita',
       'shawarma': 'Chicken Shawarma Pita',
       'kebab': 'Kafta Platter',
       'kafta': 'Kafta Platter',
-      'taouk': 'Shish Taouk Platter',
+      'taouk': 'Shish Taouk Pita',
       'hummus': 'Hummus',
       'tabouleh': 'Tabouleh',
       'fattoush': 'Fattoush',
