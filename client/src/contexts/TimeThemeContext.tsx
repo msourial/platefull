@@ -1,29 +1,35 @@
-import React, { createContext, useContext, PropsWithChildren } from 'react';
+import React, { createContext, useContext, useEffect, useState, PropsWithChildren } from 'react';
 import { useTimeTheme, TimeTheme } from '../hooks/use-time-theme';
 
-// Create a context for the time-based theme
-const TimeThemeContext = createContext<TimeTheme | null>(null);
+// Create a context with a default (undefined)
+const TimeThemeContext = createContext<TimeTheme | undefined>(undefined);
 
 /**
  * Provider component that wraps the application and provides time-based theming
  */
 export function TimeThemeProvider({ children }: PropsWithChildren<{}>) {
-  const theme = useTimeTheme();
-
-  // Apply some global CSS variables based on the current theme
-  React.useEffect(() => {
-    document.documentElement.style.setProperty('--primary-color', theme.primaryColor);
-    document.documentElement.style.setProperty('--secondary-color', theme.secondaryColor);
-    document.documentElement.style.setProperty('--accent-color', theme.accentColor);
-    document.documentElement.style.setProperty('--text-color', theme.textColor);
-    document.documentElement.style.setProperty('--background-color', theme.backgroundColor);
-    document.documentElement.style.setProperty('--card-color', theme.cardColor);
-    document.documentElement.style.setProperty('--gradient-start', theme.gradientStart);
-    document.documentElement.style.setProperty('--gradient-end', theme.gradientEnd);
-  }, [theme]);
-
+  // Get the current time-based theme
+  const timeTheme = useTimeTheme();
+  
+  // Apply the time-based CSS variables when the theme changes
+  useEffect(() => {
+    // Set the CSS variables
+    document.documentElement.style.setProperty('--primary-color', timeTheme.primaryColor);
+    document.documentElement.style.setProperty('--secondary-color', timeTheme.secondaryColor);
+    document.documentElement.style.setProperty('--accent-color', timeTheme.accentColor);
+    document.documentElement.style.setProperty('--text-color', timeTheme.textColor);
+    document.documentElement.style.setProperty('--background-color', timeTheme.backgroundColor);
+    document.documentElement.style.setProperty('--card-color', timeTheme.cardColor);
+    document.documentElement.style.setProperty('--gradient-start', timeTheme.gradientStart);
+    document.documentElement.style.setProperty('--gradient-end', timeTheme.gradientEnd);
+    
+    // Update the background color of the body
+    document.body.classList.remove('morning', 'afternoon', 'evening', 'night');
+    document.body.classList.add(timeTheme.timeOfDay);
+  }, [timeTheme]);
+  
   return (
-    <TimeThemeContext.Provider value={theme}>
+    <TimeThemeContext.Provider value={timeTheme}>
       {children}
     </TimeThemeContext.Provider>
   );
@@ -33,12 +39,10 @@ export function TimeThemeProvider({ children }: PropsWithChildren<{}>) {
  * Hook to access the current time-based theme
  * @returns The current time theme
  */
-export function useTimeThemeContext(): TimeTheme {
+export const useTimeThemeContext = (): TimeTheme => {
   const context = useContext(TimeThemeContext);
-  
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useTimeThemeContext must be used within a TimeThemeProvider');
   }
-  
   return context;
 }

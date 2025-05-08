@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTimeThemeContext } from '../contexts/TimeThemeContext';
+import { useTimeTheme, TimeTheme } from '../hooks/use-time-theme';
 
 // Icons for each time of day
 const TimeIcons = {

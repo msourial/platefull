@@ -27,10 +27,12 @@ function Router() {
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="restaurant-bot-theme">
-      <QueryClientProvider client={queryClient}>
-        <Router />
-        <Toaster />
-      </QueryClientProvider>
+      <TimeThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <Router />
+          <Toaster />
+        </QueryClientProvider>
+      </TimeThemeProvider>
     </ThemeProvider>
   );
 }

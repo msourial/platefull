@@ -2,10 +2,13 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { TimeIndicator } from "./TimeIndicator";
+import { useTimeThemeContext } from "../contexts/TimeThemeContext";
 
 export default function DashboardHeader() {
   const [location] = useLocation();
   const { theme, setTheme } = useTheme();
+  const timeTheme = useTimeThemeContext();
 
   const isActive = (path: string) => {
     return location === path;
@@ -26,22 +29,24 @@ export default function DashboardHeader() {
           </div>
           
           <nav className="hidden md:flex gap-6">
-            <Link href="/">
-              <a className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>Dashboard</a>
+            <Link href="/" className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>
+              Dashboard
             </Link>
-            <Link href="/orders">
-              <a className={`text-sm font-medium transition-colors ${isActive('/orders') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>Orders</a>
+            <Link href="/orders" className={`text-sm font-medium transition-colors ${isActive('/orders') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>
+              Orders
             </Link>
-            <Link href="/menu">
-              <a className={`text-sm font-medium transition-colors ${isActive('/menu') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>Menu</a>
+            <Link href="/menu" className={`text-sm font-medium transition-colors ${isActive('/menu') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>
+              Menu
             </Link>
-            <Link href="/settings">
-              <a className={`text-sm font-medium transition-colors ${isActive('/settings') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>Settings</a>
+            <Link href="/settings" className={`text-sm font-medium transition-colors ${isActive('/settings') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>
+              Settings
             </Link>
           </nav>
         </div>
         
         <div className="flex items-center gap-4">
+          <TimeIndicator />
+          
           <Button
             variant="ghost"
             size="icon"
