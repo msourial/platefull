@@ -537,9 +537,28 @@ async function extractOrderItem(text: string, conversationId?: number): Promise<
         log(`Checking last bot message for context: "${lastBotMessage.text}"`, 'nlp-service-debug');
         
         // Look for specific menu items mentioned in the bot's last message
-        // First, check for kafta-specific messages which is a common issue
-        if (singleWord === 'kafta') {
-          log(`Detected 'kafta' as single word response`, 'nlp-service-debug');
+        // First, check the previous message for a clear recommendation of specific items
+        // This is a more direct approach to handle recommendations like "Would you like A or B?"
+        const recommendations = lastBotMessage.text.match(/(?:chicken shawarma salad|beef kafta|chicken shawarma|beef shawarma)/gi);
+        if (recommendations && recommendations.length > 0) {
+          log(`Found clear recommendations in previous message: ${recommendations.join(', ')}`, 'nlp-service-debug');
+          
+          // If user responded with "beef" and beef kafta was mentioned in the previous message
+          if (singleWord === 'beef' && recommendations.some(r => /beef kafta/i.test(r))) {
+            log(`User responded with 'beef' when Beef Kafta was recommended`, 'nlp-service-debug');
+            return { item: 'Beef Kafta' };
+          }
+          
+          // If user responded with "chicken" and chicken shawarma salad was mentioned
+          if (singleWord === 'chicken' && recommendations.some(r => /chicken shawarma salad/i.test(r))) {
+            log(`User responded with 'chicken' when Chicken Shawarma Salad was recommended`, 'nlp-service-debug');
+            return { item: 'Chicken Shawarma Salad' };
+          }
+        }
+
+        // Check for kafta-specific messages which is a common issue
+        if (singleWord === 'kafta' || singleWord === 'kefta' || singleWord === 'kaffa') {
+          log(`Detected kafta-like word: '${singleWord}'`, 'nlp-service-debug');
           if (/beef kafta|kafta/i.test(lastBotMessage.text)) {
             log(`Context suggests 'Beef Kafta' from previous message mentioning kafta`, 'nlp-service-debug');
             return { item: 'Beef Kafta' };
