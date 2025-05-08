@@ -129,10 +129,62 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
   // Process based on callback data
   const [action, ...params] = query.data.split(':');
   
+  log(`Processing callback query: Action=${action}, Params=${params.join(',')}`, 'telegram-callback');
+  
   switch (action) {
     case 'menu':
       await sendMenuCategories(chatId);
       await storage.updateConversation(conversation.id, { state: 'menu_selection' });
+      break;
+      
+    case 'menu_item':
+      if (params[0]) {
+        const menuItemId = parseInt(params[0]);
+        log(`Processing menu item selection with ID: ${menuItemId}`, 'telegram-callback');
+        
+        const menuItem = await storage.getMenuItemById(menuItemId);
+        
+        if (!menuItem) {
+          await bot.sendMessage(chatId, "Sorry, this item is not available.");
+          return;
+        }
+        
+        // Get or create an order for the user
+        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+        let orderId: number;
+        
+        if (activeOrder) {
+          orderId = activeOrder.id;
+        } else {
+          const newOrder = await createOrder(telegramUser.id);
+          orderId = newOrder.id;
+        }
+        
+        // Add the item to the order
+        await addItemToOrder(orderId, menuItemId);
+        
+        // Provide a confirmation
+        await bot.sendMessage(
+          chatId,
+          `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "View My Order", callback_data: "view_order" }],
+                [{ text: "Add More Items", callback_data: "menu" }],
+                [{ text: "Checkout", callback_data: "checkout" }]
+              ]
+            }
+          }
+        );
+      } else {
+        await bot.sendMessage(
+          chatId,
+          "Sorry, I couldn't find that menu item. Let me show you our menu categories instead.",
+          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+        );
+      }
       break;
 
     case 'direct_order':
