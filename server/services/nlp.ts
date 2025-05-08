@@ -145,7 +145,7 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
     }
     
     // Check for item ordering
-    const orderMatch = extractOrderItem(normalizedText);
+    const orderMatch = await extractOrderItem(normalizedText);
     
     if (orderMatch) {
       const response = {
@@ -444,7 +444,7 @@ function extractCategory(text: string): string | undefined {
   return undefined;
 }
 
-function extractOrderItem(text: string): { item: string, specialInstructions?: string } | undefined {
+async function extractOrderItem(text: string): Promise<{ item: string, specialInstructions?: string } | undefined> {
   // Handle single-word food items specially
   const words = text.trim().split(/\s+/);
   if (words.length === 1) {
@@ -453,7 +453,7 @@ function extractOrderItem(text: string): { item: string, specialInstructions?: s
     
     // Basic food mapping for single words - using exact menu item names from database
     const directFoodMappings: Record<string, string> = {
-      'beef': 'Beef Shawarma Platter',
+      // We don't directly map 'beef' anymore since we'll handle it specially for multiple options
       'chicken': 'Chicken Shawarma Pita',
       'falafel': 'Falafel Pita',
       'shawarma': 'Chicken Shawarma Pita',
@@ -476,13 +476,45 @@ function extractOrderItem(text: string): { item: string, specialInstructions?: s
     // Instead of using direct mapping, let's find all menu items that match
     // This will enable us to handle multiple options for a single word like "beef"
     
-    // First check if there is a direct mapping for clarity
+    // Special case for beef, which needs to handle multiple matching products
+    if (singleWord === 'beef') {
+      log(`Handling special case for beef options`, 'nlp-service-debug');
+      
+      // Get all beef-related menu items
+      const beefItems = await storage.getMenuItemsByName('Beef');
+      
+      if (beefItems.length > 1) {
+        log(`Found ${beefItems.length} beef options`, 'nlp-service-debug');
+        
+        // Return these as multiple options for the user to choose from
+        return {
+          item: 'multiple-options',
+          specialInstructions: JSON.stringify(beefItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price
+          })))
+        };
+      } else if (beefItems.length === 1) {
+        // Just one match, so return it directly
+        return {
+          item: beefItems[0].name
+        };
+      }
+      
+      // Fallback: If for some reason we didn't find any beef items (shouldn't happen)
+      return {
+        item: 'Beef Shawarma Pita'
+      };
+    }
+    
+    // For other items, check if there is a direct mapping
     if (singleWord in directFoodMappings) {
       log(`Found direct mapping for "${singleWord}" to "${directFoodMappings[singleWord]}"`, 'nlp-service-debug');
       
       // Instead of returning immediately, we'll use the direct mapping as a suggestion
       // but we'll still need to check if there are multiple options for this item
-      const potentialMatches = storage.findMenuItemsByPartialName(singleWord);
+      const potentialMatches = await storage.findMenuItemsByPartialName(singleWord);
       
       // If we've found multiple options, we'll handle this as a special case
       if (potentialMatches && potentialMatches.length > 1) {

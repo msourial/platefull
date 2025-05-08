@@ -1021,6 +1021,32 @@ async function processNaturalLanguageInput(
         return;
       }
       
+      // Handle special case for multiple options
+      if (response.item === 'multiple-options' && response.specialInstructions) {
+        try {
+          // Parse the JSON with potential matches
+          const potentialMatches = JSON.parse(response.specialInstructions);
+          
+          if (potentialMatches && potentialMatches.length > 0) {
+            // Create keyboard buttons for each match
+            const keyboard = potentialMatches.map(item => [
+              { text: `${item.name} - $${parseFloat(item.price.toString()).toFixed(2)}`, callback_data: `add_item:${item.id}` }
+            ]);
+            
+            keyboard.push([{ text: "Show Full Menu", callback_data: "menu" }]);
+            
+            await bot.sendMessage(
+              msg.chat.id,
+              "I found multiple options that match your request. Which one would you like?",
+              createInlineKeyboard(keyboard)
+            );
+            return;
+          }
+        } catch (error) {
+          log(`Error parsing multiple options: ${error}`, 'telegram-error');
+        }
+      }
+      
       const menuItems = await storage.getMenuItemsByName(response.item);
       
       if (menuItems.length === 0) {
