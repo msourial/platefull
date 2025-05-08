@@ -217,30 +217,63 @@ function isGreeting(text: string): boolean {
 }
 
 function isMenuRequest(text: string): boolean {
-  const menuKeywords = ['menu', 'show me', 'what do you have', 'what do you offer', 'can i see', 'food', 'options'];
-  return menuKeywords.some(keyword => text.includes(keyword));
+  const menuKeywords = [
+    'menu', 'show me', 'what do you have', 'what do you offer', 'can i see', 
+    'food', 'options', 'food options', 'categories', 'offerings', 
+    'what can i order', 'what food', 'selections', 'choices',
+    'what is available', 'whats available', 'what\'s available',
+    'list of', 'tell me about', 'display', 'show the menu'
+  ];
+  return menuKeywords.some(keyword => text.toLowerCase().includes(keyword));
 }
 
 function isViewOrderRequest(text: string): boolean {
-  const orderKeywords = ['view order', 'my order', 'current order', 'what i ordered', 'show my order', 'cart'];
-  return orderKeywords.some(keyword => text.includes(keyword));
+  const orderKeywords = [
+    'view order', 'my order', 'current order', 'what i ordered', 'show my order', 'cart', 
+    'basket', 'what\'s in my cart', 'whats in my cart', 'show cart', 'view cart', 
+    'order status', 'what did i order', 'items in my order', 'what have i ordered',
+    'my items', 'check my order', 'see my order', 'see what i ordered'
+  ];
+  return orderKeywords.some(keyword => text.toLowerCase().includes(keyword));
 }
 
 function isCheckoutRequest(text: string): boolean {
-  const checkoutKeywords = ['checkout', 'check out', 'place order', 'confirm order', 'finalize', 'done ordering', 'finish', 'pay', 'proceed'];
-  return checkoutKeywords.some(keyword => text.includes(keyword));
+  const checkoutKeywords = [
+    'checkout', 'check out', 'place order', 'confirm order', 'finalize', 'done ordering', 
+    'finish', 'pay', 'proceed', 'complete my order', 'submit order', 'send order',
+    'ready to order', 'finalize order', 'place my order', 'finish my order',
+    'order now', 'confirm my order', 'submit my order', 'complete order',
+    'go to checkout', 'proceed to checkout', 'process my order', 'i\'m done'
+  ];
+  return checkoutKeywords.some(keyword => text.toLowerCase().includes(keyword));
 }
 
 function extractCategory(text: string): string | undefined {
-  const categories = ['burger', 'burgers', 'pizza', 'pizzas', 'pasta', 'drink', 'drinks', 'beverage', 'beverages'];
+  // Boustan restaurant categories
+  const categoryMappings = {
+    'pita': 'Pitas & Wraps',
+    'wrap': 'Pitas & Wraps',
+    'platter': 'Platters',
+    'salad': 'Salads',
+    'appetizer': 'Appetizers',
+    'side': 'Sides',
+    'dessert': 'Desserts',
+    'drink': 'Drinks',
+    'shawarma': 'Pitas & Wraps',
+    'falafel': 'Pitas & Wraps',
+    'kebab': 'Platters',
+    'hummus': 'Appetizers',
+    'garlic': 'Sides',
+    'rice': 'Sides',
+    'tabouleh': 'Salads',
+    'baklava': 'Desserts'
+  };
   
-  for (const category of categories) {
-    if (text.includes(category)) {
-      // Normalize category names
-      if (category === 'burger' || category === 'burgers') return 'Burgers';
-      if (category === 'pizza' || category === 'pizzas') return 'Pizza';
-      if (category === 'pasta') return 'Pasta';
-      if (category === 'drink' || category === 'drinks' || category === 'beverage' || category === 'beverages') return 'Drinks';
+  const normalizedText = text.toLowerCase();
+  
+  for (const [keyword, category] of Object.entries(categoryMappings)) {
+    if (normalizedText.includes(keyword)) {
+      return category;
     }
   }
   
@@ -248,26 +281,108 @@ function extractCategory(text: string): string | undefined {
 }
 
 function extractOrderItem(text: string): { item: string, specialInstructions?: string } | undefined {
-  // Common food items in the menu
+  // Boustan menu items 
   const menuItems = [
-    'classic burger', 'deluxe burger', 'veggie burger', 'burger',
-    'margherita pizza', 'pepperoni pizza', 'pizza',
-    'spaghetti bolognese', 'fettuccine alfredo', 'pasta',
-    'coke', 'coca-cola', 'diet coke', 'water', 'bottled water'
+    // Pitas & Wraps
+    'chicken shawarma pita', 'chicken shawarma', 'shawarma pita', 'chicken pita',
+    'beef shawarma pita', 'beef shawarma', 'beef pita',
+    'falafel pita', 'falafel wrap', 'falafel',
+    'shish taouk pita', 'shish taouk', 'taouk pita',
+    'kafta pita', 'kafta wrap', 'kafta',
+    'vegetarian pita', 'vegetarian wrap', 'veggie pita', 'veggie wrap',
+    'mix shawarma pita', 'mix shawarma wrap', 'mixed shawarma',
+    
+    // Platters
+    'chicken shawarma platter', 'shawarma platter', 'chicken platter',
+    'beef shawarma platter', 'beef platter',
+    'falafel platter',
+    'shish taouk platter', 'taouk platter',
+    'kafta platter',
+    'mixed platter', 'mix platter', 'mix shawarma platter',
+    
+    // Salads & Sides
+    'tabouleh', 'tabbouleh', 'tabouleh salad',
+    'fattoush', 'fattoush salad',
+    'greek salad',
+    'hummus', 'hummus dip',
+    'baba ghanouj', 'baba ganoush',
+    'garlic potatoes', 'garlic potato',
+    'rice', 'lebanese rice',
+    'fries', 'french fries', 
+    
+    // Drinks
+    'coke', 'coca-cola', 'diet coke', 
+    'sprite', 'ginger ale',
+    'water', 'bottled water',
+    'ayran yogurt drink', 'ayran', 'yogurt drink',
+    'jellab', 'jallab',
+    'lemonade', 'mint lemonade'
   ];
+  
+  const normalizedText = text.toLowerCase();
   
   // Check for menu items in the text
   for (const item of menuItems) {
-    if (text.includes(item)) {
+    if (normalizedText.includes(item)) {
       // Check for special instructions
-      const specialInstructions = extractSpecialInstructions(text, item);
+      const specialInstructions = extractSpecialInstructions(normalizedText, item);
       
       // Normalize item names
       let normalizedItem = item;
-      if (item === 'burger') normalizedItem = 'Classic Burger';
-      if (item === 'pizza') normalizedItem = 'Margherita Pizza';
-      if (item === 'pasta') normalizedItem = 'Spaghetti Bolognese';
-      if (item === 'coke' || item === 'coca-cola') normalizedItem = 'Coca-Cola';
+      
+      // Pitas & Wraps
+      if (item === 'chicken shawarma' || item === 'shawarma pita' || item === 'chicken pita') 
+        normalizedItem = 'Chicken Shawarma Pita';
+      if (item === 'beef shawarma' || item === 'beef pita') 
+        normalizedItem = 'Beef Shawarma Pita';
+      if (item === 'falafel' || item === 'falafel wrap') 
+        normalizedItem = 'Falafel Pita';
+      if (item === 'shish taouk' || item === 'taouk pita') 
+        normalizedItem = 'Shish Taouk Pita';
+      if (item === 'kafta' || item === 'kafta wrap') 
+        normalizedItem = 'Kafta Pita';
+      if (item === 'vegetarian wrap' || item === 'veggie pita' || item === 'veggie wrap') 
+        normalizedItem = 'Vegetarian Pita';
+      if (item === 'mix shawarma wrap' || item === 'mixed shawarma') 
+        normalizedItem = 'Mix Shawarma Pita';
+      
+      // Platters
+      if (item === 'shawarma platter' || item === 'chicken platter') 
+        normalizedItem = 'Chicken Shawarma Platter';
+      if (item === 'beef platter') 
+        normalizedItem = 'Beef Shawarma Platter';
+      if (item === 'taouk platter') 
+        normalizedItem = 'Shish Taouk Platter';
+      if (item === 'mixed platter' || item === 'mix platter' || item === 'mix shawarma platter') 
+        normalizedItem = 'Mix Shawarma Platter';
+      
+      // Salads & Sides
+      if (item === 'tabbouleh' || item === 'tabouleh salad') 
+        normalizedItem = 'Tabouleh';
+      if (item === 'fattoush salad') 
+        normalizedItem = 'Fattoush';
+      if (item === 'hummus dip') 
+        normalizedItem = 'Hummus';
+      if (item === 'baba ganoush') 
+        normalizedItem = 'Baba Ghanouj';
+      if (item === 'garlic potato') 
+        normalizedItem = 'Garlic Potatoes';
+      if (item === 'lebanese rice') 
+        normalizedItem = 'Rice';
+      if (item === 'french fries') 
+        normalizedItem = 'Fries';
+      
+      // Drinks
+      if (item === 'coca-cola') 
+        normalizedItem = 'Coke';
+      if (item === 'bottled water') 
+        normalizedItem = 'Water';
+      if (item === 'ayran' || item === 'yogurt drink') 
+        normalizedItem = 'Ayran Yogurt Drink';
+      if (item === 'jallab') 
+        normalizedItem = 'Jellab';
+      if (item === 'mint lemonade') 
+        normalizedItem = 'Lemonade';
       
       return {
         item: normalizedItem,
