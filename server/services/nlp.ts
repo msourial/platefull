@@ -167,7 +167,9 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
     
     // Check for dietary preferences before going to AI
     if (hasDietaryPreference(normalizedText)) {
+      log(`Detected dietary preference in text: "${text}"`, 'nlp-service-debug');
       const dietaryPreference = extractDietaryPreference(normalizedText);
+      log(`Extracted preference: "${dietaryPreference}"`, 'nlp-service-debug');
       
       if (dietaryPreference === 'vegetarian' || dietaryPreference === 'vegan') {
         const response = {
@@ -284,7 +286,7 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
         const response = {
           intent: "dietary_recommendation",
           dietaryPreference: dietaryPreference,
-          message: `For ${dietaryPreference} options, I'd recommend our Chicken Shawarma Salad or Beef Kafta with extra vegetables instead of rice. These options are high in protein and lower in carbs. Would you like to try one of these?`,
+          message: `For ${dietaryPreference === 'keto' ? 'keto' : 'low-carb'} options, I'd recommend our Chicken Shawarma Salad or Beef Kafta with extra vegetables instead of rice. These options are high in protein and lower in carbs. Would you like to try one of these?`,
           recommendations: [
             {
               name: "Chicken Shawarma Salad",
@@ -595,10 +597,18 @@ function hasDietaryPreference(text: string): boolean {
     'no dairy', 'meat-free', 'vegetable', 'vegetables', 'meatless', 'veggie',
     'allergy', 'allergic', 'allergies', 'intolerance', 'no nuts', 'nut-free', 
     'no gluten', 'health', 'diet', 'dieting', 'healthy', 'low calorie',
-    'low-calorie', 'spicy', 'mild', 'hot', 'vertarin', 'vegitarian', 'veg'
+    'low-calorie', 'spicy', 'mild', 'hot', 'vertarin', 'vegitarian', 'veg',
+    'keto', 'ketogenic', 'low carb', 'low-carb', 'low carbs', 'no carbs', 'carb-free',
+    'high protein', 'high-protein', 'protein rich', 'no bread', 'paleo', 'atkins',
+    'sugar-free', 'sugar free', 'no sugar', 'diabetic', 'diabetes'
   ];
   
-  return dietaryKeywords.some(keyword => text.toLowerCase().includes(keyword));
+  const lowerText = text.toLowerCase();
+  const hasPreference = dietaryKeywords.some(keyword => lowerText.includes(keyword));
+  
+  log(`Checking dietary preferences in: "${text}" - Result: ${hasPreference}`, 'nlp-service-debug');
+  
+  return hasPreference;
 }
 
 /**
