@@ -111,6 +111,44 @@ Response format (for internal processing):
   "responseMessage": "Your friendly, conversational response that highlights the menu items and why they might enjoy them"
 }`;
 
+    // Check for single-word food item searches (e.g., "beef", "chicken", "shawarma")
+    const wordCount = userMessage.trim().split(/\s+/).length;
+    if (wordCount === 1) {
+      const simpleSearch = userMessage.trim().toLowerCase();
+      log(`Processing single-word food item search: "${simpleSearch}"`, 'ai-service');
+      
+      // Direct search in menu items for exact matches or contains
+      const directMatches = menuItems.filter(item => 
+        item.name.toLowerCase().includes(simpleSearch) ||
+        (item.description && item.description.toLowerCase().includes(simpleSearch))
+      );
+      
+      if (directMatches.length > 0) {
+        log(`Found ${directMatches.length} direct matches for "${simpleSearch}"`, 'ai-service');
+        // Return structured response with direct matches
+        return {
+          recommendations: directMatches.slice(0, 3).map(item => ({
+            name: item.name,
+            category: item.category?.name || '',
+            reasons: [
+              `Contains ${simpleSearch} as a key ingredient`,
+              `From our ${item.category?.name || 'menu'} selection`
+            ]
+          })),
+          followUpQuestions: [
+            "Would you like to customize your order?",
+            "Would you prefer this as a wrap or a platter?",
+            "Would you like a beverage with your meal?"
+          ],
+          responseMessage: `Great choice! Here are our menu items with ${simpleSearch}:`
+        };
+      }
+      
+      // If no direct matches found, add specific context for single-word queries
+      log(`No direct matches found for "${simpleSearch}", enhancing AI context`, 'ai-service');
+      userMessage = `I'm interested in dishes containing or related to ${userMessage}. What do you recommend?`;
+    }
+    
     // Create message arrays for the conversation
     const messages = [
       { role: "system", content: systemPrompt },
@@ -132,28 +170,79 @@ Response format (for internal processing):
       });
     }
     
-    // Add the user message
-    messages.push({ role: "user", content: userMessage });
-
-    // Call OpenAI
-    const response = await openai.chat.completions.create({
-      model: MODEL,
-      messages: messages as any,
-      response_format: { type: "json_object" },
-      temperature: 0.7,
+    // Add the user message with json keyword to ensure compatibility with response_format
+    messages.push({ 
+      role: "user", 
+      content: `Please provide food recommendations in json format based on my request: ${userMessage}` 
     });
 
-    // Extract the response
-    const responseContent = response.choices[0].message.content;
-    
-    if (!responseContent) {
-      throw new Error("Empty response from OpenAI");
+    try {
+      // Call OpenAI
+      const response = await openai.chat.completions.create({
+        model: MODEL,
+        messages: messages as any,
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+  
+      // Extract the response
+      const responseContent = response.choices[0].message.content;
+      
+      if (!responseContent) {
+        throw new Error("Empty response from OpenAI");
+      }
+  
+      // Parse the JSON response
+      const parsedResponse = JSON.parse(responseContent) as FoodRecommendationResponse;
+      
+      return parsedResponse;
+    } catch (apiError) {
+      log(`Error in OpenAI API call: ${apiError}`, 'ai-service-error');
+      
+      // Simpler fallback approach without response_format
+      const fallbackResponse = await openai.chat.completions.create({
+        model: MODEL,
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a helpful assistant for a Lebanese restaurant. Respond with food recommendations in JSON format." 
+          },
+          { 
+            role: "user", 
+            content: `Create a JSON response with the following structure:
+{
+  "recommendations": [
+    {
+      "name": "Dish name",
+      "category": "Category",
+      "reasons": ["Reason 1", "Reason 2"]
     }
+  ],
+  "followUpQuestions": ["Question 1", "Question 2"],
+  "responseMessage": "Friendly message with recommendations"
+}
 
-    // Parse the JSON response
-    const parsedResponse = JSON.parse(responseContent) as FoodRecommendationResponse;
-    
-    return parsedResponse;
+For this customer request: ${userMessage}`
+          }
+        ],
+        temperature: 0.7,
+      });
+      
+      const fallbackContent = fallbackResponse.choices[0].message.content || "";
+      
+      // Try to extract JSON from the response
+      const jsonMatch = fallbackContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]) as FoodRecommendationResponse;
+        } catch (parseError) {
+          log(`Error parsing JSON from fallback response: ${parseError}`, 'ai-service-error');
+          throw new Error("Failed to parse JSON from fallback response");
+        }
+      }
+      
+      throw new Error("Failed to get valid response from OpenAI");
+    }
   } catch (error) {
     log(`Error getting food recommendations: ${error}`, 'ai-service-error');
     // Return a graceful fallback response

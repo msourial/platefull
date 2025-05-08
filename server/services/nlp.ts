@@ -445,6 +445,43 @@ function extractCategory(text: string): string | undefined {
 }
 
 function extractOrderItem(text: string): { item: string, specialInstructions?: string } | undefined {
+  // Handle single-word food items specially
+  const words = text.trim().split(/\s+/);
+  if (words.length === 1) {
+    const singleWord = words[0].toLowerCase();
+    log(`Processing single-word food item: "${singleWord}"`, 'nlp-service-debug');
+    
+    // Basic food mapping for single words
+    const directFoodMappings: Record<string, string> = {
+      'beef': 'Beef Shawarma Platter',
+      'chicken': 'Chicken Shawarma Pita',
+      'falafel': 'Falafel Wrap',
+      'shawarma': 'Chicken Shawarma Pita',
+      'kebab': 'Kafta Platter',
+      'kafta': 'Kafta Platter',
+      'taouk': 'Shish Taouk Platter',
+      'hummus': 'Hummus',
+      'tabouleh': 'Tabouleh',
+      'fattoush': 'Fattoush',
+      'rice': 'Rice',
+      'water': 'Water',
+      'coke': 'Coke',
+      'pepsi': 'Coke',
+      'soda': 'Coke',
+      'drink': 'Coke',
+      'baklava': 'Baklava',
+      'salad': 'Fattoush'
+    };
+    
+    // Check for direct match
+    if (singleWord in directFoodMappings) {
+      log(`Found direct mapping for "${singleWord}" to "${directFoodMappings[singleWord]}"`, 'nlp-service-debug');
+      return {
+        item: directFoodMappings[singleWord]
+      };
+    }
+  }
+  
   // Boustan menu items 
   const menuItems = [
     // Pitas & Wraps
