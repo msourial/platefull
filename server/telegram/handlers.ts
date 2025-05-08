@@ -134,6 +134,24 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       await sendMenuCategories(chatId);
       await storage.updateConversation(conversation.id, { state: 'menu_selection' });
       break;
+
+    case 'direct_order':
+      await bot.sendMessage(
+        chatId,
+        "Please type what you'd like to order. For example, you can say 'I want a chicken shawarma pita' or 'I'd like a beef platter and a side of hummus'.",
+        { parse_mode: 'Markdown' }
+      );
+      await storage.updateConversation(conversation.id, { state: 'item_selection' });
+      break;
+      
+    case 'special_request':
+      await bot.sendMessage(
+        chatId,
+        "*Tell me what you're in the mood for and I'll recommend the perfect Boustan dishes for you!*\n\nYou can say things like:\n- \"What's good for vegetarians?\"\n- \"I want something spicy\"\n- \"I'm really hungry and need a filling meal\"\n- \"What's popular at Boustan?\"\n- \"I need a quick lunch option\"",
+        { parse_mode: 'Markdown' }
+      );
+      await storage.updateConversation(conversation.id, { state: 'item_selection' });
+      break;
       
     case 'follow_up':
       // This is a follow-up question from AI recommendations
@@ -154,6 +172,13 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       if (questionIndex >= 0 && questionIndex < followUpQuestions.length) {
         const question = followUpQuestions[questionIndex];
         
+        // Let the user know which question we're answering
+        await bot.sendMessage(
+          chatId,
+          `*Answering:* ${question}`,
+          { parse_mode: 'Markdown' }
+        );
+        
         // Create a fake message to process the follow-up question
         const fakeMessage: TelegramBot.Message = {
           message_id: Date.now(),
@@ -163,13 +188,16 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
           text: question
         };
         
-        // Process this as a regular message
-        await handleIncomingMessage(bot, fakeMessage);
+        // Process this as a natural language query
+        await processNaturalLanguageInput(bot, fakeMessage, telegramUser, conversation);
       } else {
         await bot.sendMessage(
           chatId,
-          "I'm sorry, I don't recognize that question. How can I help you?",
-          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          "I'm sorry, I don't recognize that question. Would you like to see our menu or ask me about something specific?",
+          createInlineKeyboard([
+            [{ text: "Show Menu", callback_data: "menu" }],
+            [{ text: "Make Recommendations", callback_data: "special_request" }]
+          ])
         );
       }
       break;
@@ -453,7 +481,8 @@ async function processNaturalLanguageInput(
       // AI has provided recommendations based on user query
       await bot.sendMessage(
         msg.chat.id,
-        response.message || "Based on what you're looking for, I have some recommendations for you!"
+        response.message || "*Based on what you're looking for, here are my Boustan recommendations:*",
+        { parse_mode: 'Markdown' }
       );
       
       // Store follow-up questions in conversation context for later use
