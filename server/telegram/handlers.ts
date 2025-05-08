@@ -143,6 +143,46 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       );
       await storage.updateConversation(conversation.id, { state: 'item_selection' });
       break;
+    
+    case 'customize':
+      if (params[0]) {
+        const menuItemId = parseInt(params[0]);
+        const menuItem = await storage.getMenuItemById(menuItemId);
+        
+        if (!menuItem) {
+          await bot.sendMessage(chatId, "Sorry, this item is not available.");
+          return;
+        }
+        
+        // Get or create an order for the user
+        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+        let orderId: number;
+        
+        if (activeOrder) {
+          orderId = activeOrder.id;
+        } else {
+          const newOrder = await createOrder(telegramUser.id);
+          orderId = newOrder.id;
+        }
+        
+        // Add the item to the order first
+        await addItemToOrder(orderId, menuItemId);
+        
+        // Then ask for customizations
+        if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
+          await askForCustomizations(bot, chatId, menuItem, orderId);
+        } else {
+          await bot.sendMessage(
+            chatId,
+            `Added ${menuItem.name} to your order. Anything else?`,
+            createInlineKeyboard([
+              [{ text: "View Order", callback_data: "view_order" }],
+              [{ text: "Continue Shopping", callback_data: "menu" }]
+            ])
+          );
+        }
+      }
+      break;
       
     case 'special_request':
       await bot.sendMessage(
@@ -378,19 +418,78 @@ async function processNaturalLanguageInput(
   conversation: any
 ) {
   try {
-    const response = await processNaturalLanguage(msg.text!, telegramUser.id);
+    // Log the user's request for debugging
+    log(`Processing natural language input: "${msg.text}" from user ${telegramUser.telegramId}`, 'telegram-nlp');
+    
+    // Record the start time for performance tracking
+    const startTime = Date.now();
+    
+    // Process the natural language using OpenAI
+    const response = await processNaturalLanguage(msg.text!, telegramUser.telegramId);
+    
+    // Log performance metrics
+    const processingTime = Date.now() - startTime;
+    log(`NLP processing time: ${processingTime}ms for intent: ${response.intent}`, 'telegram-nlp');
+    
+    // Create conversation message record to track history
+    await storage.createConversationMessage(conversation.id, {
+      text: msg.text || "",
+      isFromUser: true
+    });
     
     // Update conversation based on NLP response
-    if (response.intent === "order_item") {
+    if (response.intent === "order_item" || response.intent === "direct_order") {
       // User wants to order a specific item
-      const menuItems = await storage.getMenuItemsByName(response.item!);
-      
-      if (menuItems.length === 0) {
+      if (!response.item) {
         await bot.sendMessage(
           msg.chat.id,
-          `I'm sorry, I couldn't find "${response.item}" on our menu. Would you like to see the menu?`,
-          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          "I'm not sure what you'd like to order. Can you be more specific about which menu item you want?",
+          createInlineKeyboard([
+            [{ text: "Show Menu", callback_data: "menu" }],
+            [{ text: "Help Me Choose", callback_data: "special_request" }]
+          ])
         );
+        return;
+      }
+      
+      const menuItems = await storage.getMenuItemsByName(response.item);
+      
+      if (menuItems.length === 0) {
+        // Try fuzzy search for similar items
+        const allMenuItems = await storage.getMenuItems();
+        const similarItems = allMenuItems.filter(item => 
+          item.name.toLowerCase().includes(response.item!.toLowerCase()) ||
+          (item.description && item.description.toLowerCase().includes(response.item!.toLowerCase()))
+        ).slice(0, 3); // Limit to 3 similar items
+        
+        if (similarItems.length > 0) {
+          await bot.sendMessage(
+            msg.chat.id,
+            `I couldn't find "${response.item}" exactly, but here are similar items:`,
+            { parse_mode: 'Markdown' }
+          );
+          
+          const keyboard = similarItems.map(item => [
+            { text: `${item.name} - $${parseFloat(item.price.toString()).toFixed(2)}`, callback_data: `add_item:${item.id}` }
+          ]);
+          
+          keyboard.push([{ text: "Show Full Menu", callback_data: "menu" }]);
+          
+          await bot.sendMessage(
+            msg.chat.id,
+            "Would you like to add any of these to your order?",
+            createInlineKeyboard(keyboard)
+          );
+        } else {
+          await bot.sendMessage(
+            msg.chat.id,
+            `I'm sorry, I couldn't find "${response.item}" on our menu. Would you like me to recommend something similar?`,
+            createInlineKeyboard([
+              [{ text: "Recommend Something", callback_data: "special_request" }],
+              [{ text: "Show Menu", callback_data: "menu" }]
+            ])
+          );
+        }
       } else if (menuItems.length === 1) {
         // Exact match found
         const menuItem = menuItems[0];
@@ -409,41 +508,67 @@ async function processNaturalLanguageInput(
         // Add item to order with special instructions if any
         const orderItem = await addItemToOrder(orderId, menuItem.id, 1, response.specialInstructions);
         
+        // Confirmation message with Markdown formatting
         await bot.sendMessage(
           msg.chat.id,
-          `I've added 1 ${menuItem.name} to your order${response.specialInstructions ? ` (${response.specialInstructions})` : ''}. Would you like anything else?`,
-          createInlineKeyboard([
-            [{ text: "View Order", callback_data: "view_order" }],
-            [{ text: "Continue Shopping", callback_data: "menu" }]
-          ])
+          `*Added to your order:* ${menuItem.name}${response.specialInstructions ? `\n_Special instructions: ${response.specialInstructions}_` : ''}\n\nWould you like anything else?`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "View Order", callback_data: "view_order" }],
+                [{ text: "Continue Shopping", callback_data: "menu" }],
+                [{ text: "Checkout", callback_data: "checkout" }]
+              ]
+            }
+          }
         );
+        
+        // If item has customization options, ask for them
+        if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
+          await askForCustomizations(bot, msg.chat.id, menuItem, orderId);
+        }
       } else {
-        // Multiple matches found
-        await bot.sendMessage(msg.chat.id, "I found multiple items that match. Please select one:");
-        
-        const keyboard = menuItems.map(item => [
-          { text: `${item.name} - $${parseFloat(item.price.toString()).toFixed(2)}`, callback_data: `add_item:${item.id}` }
-        ]);
-        
+        // Multiple matches found - present options with prices and descriptions
         await bot.sendMessage(
           msg.chat.id,
-          "Which one would you like to add to your order?",
-          createInlineKeyboard(keyboard)
+          `I found multiple items matching "${response.item}". Please select one:`,
+          { parse_mode: 'Markdown' }
         );
+        
+        // Display each matching item with details
+        for (const item of menuItems) {
+          await bot.sendMessage(
+            msg.chat.id,
+            `*${item.name}* - $${parseFloat(item.price.toString()).toFixed(2)}\n${item.description || ''}`,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: `Add to Order`, callback_data: `add_item:${item.id}` }]
+                ]
+              }
+            }
+          );
+        }
       }
     } else if (response.intent === "show_menu") {
       // User wants to see the menu
       if (response.category) {
         // Show items for specific category
         const categories = await storage.getCategories();
-        const category = categories.find(c => c.name.toLowerCase() === response.category!.toLowerCase());
+        const category = categories.find(c => 
+          c.name.toLowerCase() === response.category!.toLowerCase() ||
+          c.name.toLowerCase().includes(response.category!.toLowerCase())
+        );
         
         if (category) {
           await sendMenuItems(msg.chat.id, category.id);
         } else {
           await bot.sendMessage(
             msg.chat.id,
-            `I couldn't find the category "${response.category}". Here are all our categories:`,
+            `I couldn't find the category "${response.category}". Here are all our menu categories:`,
+            { parse_mode: 'Markdown' }
           );
           await sendMenuCategories(msg.chat.id);
         }
@@ -455,13 +580,21 @@ async function processNaturalLanguageInput(
       // User wants to see their current order
       const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
       
-      if (activeOrder) {
+      if (activeOrder && activeOrder.orderItems.length > 0) {
         await sendOrderSummary(msg.chat.id, activeOrder.id);
       } else {
         await bot.sendMessage(
           msg.chat.id,
-          "You don't have an active order yet. Would you like to see our menu?",
-          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          "*Your order is empty*\n\nYou don't have any items in your order yet. Would you like to see our menu or get recommendations?",
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "Browse Menu", callback_data: "menu" }],
+                [{ text: "Get Recommendations", callback_data: "special_request" }]
+              ]
+            }
+          }
         );
       }
     } else if (response.intent === "checkout") {
@@ -469,16 +602,30 @@ async function processNaturalLanguageInput(
       const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
       
       if (activeOrder && activeOrder.orderItems.length > 0) {
+        // Show order summary before proceeding to delivery options
+        await sendOrderSummary(msg.chat.id, activeOrder.id);
+        await bot.sendMessage(
+          msg.chat.id,
+          "*Ready to complete your order!*\n\nLet's set up delivery or pickup.",
+          { parse_mode: 'Markdown' }
+        );
         await promptDeliveryOptions(bot, msg.chat.id, telegramUser, conversation);
       } else {
         await bot.sendMessage(
           msg.chat.id,
-          "You don't have any items in your order yet. Would you like to see our menu?",
-          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          "You don't have any items in your order yet. Let's add some delicious Lebanese food first!",
+          createInlineKeyboard([
+            [{ text: "Browse Menu", callback_data: "menu" }],
+            [{ text: "Get Recommendations", callback_data: "special_request" }]
+          ])
         );
       }
     } else if (response.intent === "recommendation") {
       // AI has provided recommendations based on user query
+      // Log the response for debugging
+      log(`Recommendation response received from AI with ${response.recommendations?.length || 0} items`, 'telegram-ai');
+      
+      // Send the AI's personalized message first
       await bot.sendMessage(
         msg.chat.id,
         response.message || "*Based on what you're looking for, here are my Boustan recommendations:*",
@@ -493,6 +640,12 @@ async function processNaturalLanguageInput(
             followUpQuestions: response.followUpQuestions
           }
         });
+        
+        // Save response message to conversation for context
+        await storage.createConversationMessage(conversation.id, {
+          text: response.message || "Based on what you're looking for, here are my recommendations:",
+          isFromUser: false
+        });
       }
       
       // If we have specific recommendations, show them with buttons to add to cart
@@ -501,7 +654,10 @@ async function processNaturalLanguageInput(
         const recommendedItems = await Promise.all(
           response.recommendations.map(async (rec) => {
             const items = await storage.getMenuItemsByName(rec.name);
-            return items.length > 0 ? items[0] : null;
+            return items.length > 0 ? { 
+              menuItem: items[0], 
+              recommendation: rec 
+            } : null;
           })
         );
         
@@ -509,51 +665,65 @@ async function processNaturalLanguageInput(
         const validItems = recommendedItems.filter(item => item !== null);
         
         if (validItems.length > 0) {
-          // Display each recommendation with details first
-          for (let i = 0; i < validItems.length; i++) {
-            const item = validItems[i];
-            const recommendation = response.recommendations![i];
+          // Display each recommendation with rich details
+          for (const itemData of validItems) {
+            if (!itemData) continue;
             
-            if (item && recommendation) {
-              // Create message with item details and reasons
-              let itemMessage = `*${item.name}* - $${parseFloat(item.price.toString()).toFixed(2)}\n`;
-              itemMessage += `${item.description || 'Authentic Lebanese cuisine'}\n\n`;
-              
-              // Add reasons why this was recommended if available
-              if (recommendation.reasons && recommendation.reasons.length > 0) {
-                itemMessage += "*Why I recommend this:*\n";
-                recommendation.reasons.forEach(reason => {
-                  itemMessage += `• ${reason}\n`;
-                });
-              }
-              
-              // Add button to add this item to cart
-              const keyboard = [
-                [{ text: `Add to Order ($${parseFloat(item.price.toString()).toFixed(2)})`, callback_data: `add_item:${item.id}` }]
-              ];
-              
-              await bot.sendMessage(
-                msg.chat.id,
-                itemMessage,
-                {
-                  parse_mode: 'Markdown',
-                  reply_markup: {
-                    inline_keyboard: keyboard
-                  }
-                }
-              );
+            const { menuItem, recommendation } = itemData;
+            
+            // Create rich message with item details and personalized reasons
+            let itemMessage = `*${menuItem.name}* - $${parseFloat(menuItem.price.toString()).toFixed(2)}\n`;
+            itemMessage += `${menuItem.description || 'Authentic Lebanese cuisine'}\n\n`;
+            
+            // Add reasons why this was recommended if available
+            if (recommendation.reasons && recommendation.reasons.length > 0) {
+              itemMessage += "*Why I recommend this:*\n";
+              recommendation.reasons.forEach(reason => {
+                itemMessage += `• ${reason}\n`;
+              });
             }
+            
+            // Add buttons: primary action to add to order, secondary to customize
+            const keyboard = [
+              [{ 
+                text: `Add to Order ($${parseFloat(menuItem.price.toString()).toFixed(2)})`, 
+                callback_data: `add_item:${menuItem.id}` 
+              }]
+            ];
+            
+            // If item has customization options, add a customize button
+            if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
+              keyboard.push([{ 
+                text: "Add with Customizations", 
+                callback_data: `customize:${menuItem.id}` 
+              }]);
+            }
+            
+            await bot.sendMessage(
+              msg.chat.id,
+              itemMessage,
+              {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: keyboard
+                }
+              }
+            );
+            
+            // Brief pause between messages to prevent rate limiting and improve readability
+            await new Promise(resolve => setTimeout(resolve, 300));
           }
           
-          // Add navigation options after recommendations
+          // Add comprehensive navigation options after all recommendations
           const navKeyboard = [
             [{ text: "View Full Menu", callback_data: "menu" }],
-            [{ text: "Get More Recommendations", callback_data: "special_request" }]
+            [{ text: "Get Different Recommendations", callback_data: "special_request" }],
+            [{ text: "View Current Order", callback_data: "view_order" }]
           ];
           
           await bot.sendMessage(
             msg.chat.id,
-            "Would you like to explore more options?",
+            "Would you like to explore more options or proceed with your order?",
             createInlineKeyboard(navKeyboard)
           );
         }
@@ -582,20 +752,70 @@ async function processNaturalLanguageInput(
           );
         }
       } else {
-        // Default menu button if we don't have specific recommendations
-        await bot.sendMessage(
-          msg.chat.id,
-          "Would you like to see our full menu?",
-          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
-        );
+        // No specific recommendations found - suggest popular items or categories
+        try {
+          const popularCategories = await storage.getPopularCategories();
+          const popularItems = await storage.getPopularItems(3); // Get top 3 popular items
+          
+          if (popularItems && popularItems.length > 0) {
+            await bot.sendMessage(
+              msg.chat.id,
+              "*Our Most Popular Items:*\nHere are some customer favorites you might enjoy:",
+              { parse_mode: 'Markdown' }
+            );
+            
+            // Display popular items
+            for (const item of popularItems) {
+              await bot.sendMessage(
+                msg.chat.id,
+                `*${item.name}* - $${parseFloat(item.price.toString()).toFixed(2)}\n${item.description || ''}`,
+                {
+                  parse_mode: 'Markdown',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: "Add to Order", callback_data: `add_item:${item.id}` }]
+                    ]
+                  }
+                }
+              );
+            }
+          }
+          
+          await bot.sendMessage(
+            msg.chat.id,
+            "Would you like to see our full menu or tell me more about what you're looking for?",
+            createInlineKeyboard([
+              [{ text: "Show Full Menu", callback_data: "menu" }],
+              [{ text: "Get Personalized Recommendations", callback_data: "special_request" }]
+            ])
+          );
+        } catch (error) {
+          // Default menu button if we can't get popular items
+          await bot.sendMessage(
+            msg.chat.id,
+            "Would you like to see our full menu of authentic Lebanese cuisine?",
+            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          );
+        }
       }
     } else {
       // Default response for other intents
       await bot.sendMessage(
         msg.chat.id,
         response.message || "I'm not sure what you're looking for. Would you like to see our menu?",
-        createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+        createInlineKeyboard([
+          [{ text: "Show Menu", callback_data: "menu" }],
+          [{ text: "Get Recommendations", callback_data: "special_request" }]
+        ])
       );
+      
+      // Save the response to conversation history
+      if (response.message) {
+        await storage.createConversationMessage(conversation.id, {
+          text: response.message,
+          isFromUser: false
+        });
+      }
     }
   } catch (error) {
     log(`Error processing natural language input: ${error}`, 'telegram-error');

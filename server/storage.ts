@@ -40,6 +40,41 @@ export const storage = {
       });
     }
   },
+  
+  // Get popular categories based on order history
+  getPopularCategories: async (limit: number = 3) => {
+    try {
+      // This is a simplified implementation since we don't have actual order analytics yet
+      // In a real implementation, we would count orders by category and return the most ordered
+      return await db.query.categories.findMany({
+        where: eq(schema.categories.isActive, true),
+        orderBy: asc(schema.categories.displayOrder),
+        limit
+      });
+    } catch (error) {
+      console.error("Error getting popular categories:", error);
+      return [];
+    }
+  },
+  
+  // Get popular menu items based on order history
+  getPopularItems: async (limit: number = 5) => {
+    try {
+      // This is a simplified implementation
+      // In a real implementation, we would count orders by item and return the most ordered
+      return await db.query.menuItems.findMany({
+        where: eq(schema.menuItems.isAvailable, true),
+        orderBy: desc(schema.menuItems.id), // Using ID as temporary proxy for popularity
+        limit,
+        with: {
+          category: true
+        }
+      });
+    } catch (error) {
+      console.error("Error getting popular items:", error);
+      return [];
+    }
+  },
 
   getMenuItemById: async (id: number) => {
     return await db.query.menuItems.findFirst({
@@ -139,11 +174,114 @@ export const storage = {
     }
   },
   
+  // Alias for addMessageToConversation to maintain backward compatibility
+  createConversationMessage: async (conversationId: number, messageData: { text: string, isFromUser: boolean }) => {
+    try {
+      const message: schema.InsertConversationMessage = {
+        conversationId,
+        text: messageData.text,
+        isFromUser: messageData.isFromUser,
+        timestamp: new Date()
+      };
+      
+      schema.insertConversationMessageSchema.parse(message);
+      const [newMessage] = await db.insert(schema.conversationMessages).values(message).returning();
+      
+      // Update the conversation's lastMessageId
+      await db.update(schema.conversations)
+        .set({ lastMessageId: newMessage.id, updatedAt: new Date() })
+        .where(eq(schema.conversations.id, conversationId));
+        
+      return newMessage;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(fromZodError(error).message);
+      }
+      console.error("Error creating conversation message:", error);
+      throw error;
+    }
+  },
+  
   getConversationMessages: async (conversationId: number) => {
     return await db.query.conversationMessages.findMany({
       where: eq(schema.conversationMessages.conversationId, conversationId),
       orderBy: asc(schema.conversationMessages.timestamp)
     });
+  },
+  
+  // Get user preferences from their order history and conversations
+  getUserPreferences: async (telegramUserId: number) => {
+    try {
+      // Get completed orders
+      const orders = await db.query.orders.findMany({
+        where: and(
+          eq(schema.orders.telegramUserId, telegramUserId),
+          eq(schema.orders.status, "completed")
+        ),
+        with: {
+          orderItems: {
+            with: {
+              menuItem: {
+                with: {
+                  category: true
+                }
+              }
+            }
+          }
+        }
+      });
+      
+      // Get conversation history for preference analysis
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(schema.conversations.telegramUserId, telegramUserId),
+        with: {
+          messages: {
+            orderBy: desc(schema.conversationMessages.timestamp),
+            limit: 50 // Get the last 50 messages
+          }
+        }
+      });
+      
+      // Process orders to extract preferences
+      const categoryFrequency: Record<string, number> = {};
+      const itemFrequency: Record<string, number> = {};
+      
+      // Calculate category and item frequencies
+      orders.forEach(order => {
+        order.orderItems.forEach(item => {
+          const categoryName = item.menuItem.category?.name;
+          if (categoryName) {
+            categoryFrequency[categoryName] = (categoryFrequency[categoryName] || 0) + 1;
+          }
+          
+          const itemName = item.menuItem.name;
+          itemFrequency[itemName] = (itemFrequency[itemName] || 0) + 1;
+        });
+      });
+      
+      // Find favorite categories and items
+      const favoriteCategories = Object.entries(categoryFrequency)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name]) => name)
+        .slice(0, 3);
+        
+      const favoriteItems = Object.entries(itemFrequency)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name]) => name)
+        .slice(0, 5);
+      
+      // Return a structured preferences object
+      return {
+        favoriteCategories,
+        favoriteItems,
+        orderCount: orders.length,
+        hasOrderHistory: orders.length > 0,
+        lastInteraction: conversation?.updatedAt || null
+      };
+    } catch (error) {
+      console.error("Error getting user preferences:", error);
+      return null;
+    }
   },
 
   // Order methods
