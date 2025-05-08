@@ -187,6 +187,55 @@ export const storage = {
       .returning();
     return updatedOrder;
   },
+  
+  // Get order history for a telegram user with formatted item data
+  getOrderHistoryByTelegramUserId: async (telegramId: string) => {
+    const user = await db.query.telegramUsers.findFirst({
+      where: eq(schema.telegramUsers.telegramId, telegramId)
+    });
+    
+    if (!user) {
+      return [];
+    }
+    
+    const orders = await db.query.orders.findMany({
+      where: and(
+        eq(schema.orders.telegramUserId, user.id),
+        eq(schema.orders.status, "completed")
+      ),
+      orderBy: desc(schema.orders.createdAt),
+      with: {
+        orderItems: {
+          with: {
+            menuItem: {
+              with: {
+                category: true
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // Format the order history
+    return orders.map(order => {
+      return {
+        id: order.id,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        items: order.orderItems.map(item => {
+          return {
+            id: item.id,
+            name: item.menuItem.name,
+            price: item.price,
+            quantity: item.quantity,
+            category: item.menuItem.category?.name || '',
+            customizations: item.customizations
+          };
+        })
+      };
+    });
+  },
 
   // Order Item methods
   createOrderItem: async (orderItem: schema.InsertOrderItem) => {
