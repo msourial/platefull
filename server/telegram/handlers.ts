@@ -2298,8 +2298,8 @@ async function showFinalOrderSummary(
     reply_markup: {
       inline_keyboard: [
         [
-          { text: "Modify Order", callback_data: "view_order" },
-          { text: "Place Order", callback_data: "place_order" }
+          { text: "✏️ Modify Order", callback_data: "view_order" },
+          { text: "✅ Place Order", callback_data: "place_order" }
         ]
       ]
     }
@@ -2344,11 +2344,11 @@ async function processOrderConfirmation(
   } else {
     await bot.sendMessage(
       msg.chat.id,
-      "Would you like to modify your order or place it as is?",
+      "Would you like to modify your order or place it as is? 🍽️",
       createInlineKeyboard([
         [
-          { text: "Modify Order", callback_data: "view_order" },
-          { text: "Place Order", callback_data: "place_order" }
+          { text: "✏️ Modify Order", callback_data: "view_order" },
+          { text: "✅ Place Order", callback_data: "place_order" }
         ]
       ])
     );
@@ -2382,8 +2382,8 @@ async function finalizeOrder(
           chatId,
           `Payment error: ${paymentResult.message}. Please try again or select a different payment method.`,
           createInlineKeyboard([
-            [{ text: "Try Again", callback_data: "payment_method:crypto" }],
-            [{ text: "Use Cash Instead", callback_data: "payment_method:cash" }]
+            [{ text: "🔄 Try Again", callback_data: "payment_method:crypto" }],
+            [{ text: "💵 Use Cash Instead", callback_data: "payment_method:cash" }]
           ])
         );
         return;
@@ -2410,7 +2410,7 @@ async function finalizeOrder(
       `Payment method: ${activeOrder.paymentMethod === 'crypto' ? 'Paid via Coinbase' : 'Cash on ' + (activeOrder.isDelivery ? 'Delivery' : 'Pickup')}\n\n` +
       `Thank you for choosing Delicious Restaurant!`,
       createInlineKeyboard([
-        [{ text: "Place Another Order", callback_data: "menu" }]
+        [{ text: "🍔 Place Another Order", callback_data: "menu" }]
       ])
     );
     
@@ -2425,8 +2425,8 @@ async function finalizeOrder(
       chatId,
       "There was a problem processing your order. Please try again later.",
       createInlineKeyboard([
-        [{ text: "View Order", callback_data: "view_order" }],
-        [{ text: "Start Over", callback_data: "menu" }]
+        [{ text: "🛒 View Order", callback_data: "view_order" }],
+        [{ text: "🔄 Start Over", callback_data: "menu" }]
       ])
     );
   }
