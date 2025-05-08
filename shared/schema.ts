@@ -108,7 +108,8 @@ export const orders = pgTable("orders", {
 });
 
 export const insertOrderSchema = createInsertSchema(orders, {
-  totalAmount: (schema) => schema.refine((val) => parseFloat(val.toString()) > 0, "Total amount must be greater than 0"),
+  // Allow zero for initial order creation - will be updated with actual items later
+  totalAmount: (schema) => schema.refine((val) => parseFloat(val.toString()) >= 0, "Total amount must be non-negative"),
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;

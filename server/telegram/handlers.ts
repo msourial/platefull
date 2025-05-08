@@ -593,8 +593,8 @@ async function processNaturalLanguageInput(
     }
     
     // Direct handling of dietary preferences without going to NLP service for common requests
-    if (/(keto|ketogenic|low carb|low-carb)/i.test(msg.text!)) {
-      // Directly handle keto requests
+    if (/(keto|ketogenic|low carb|low-carb|law carb|lo carb|lo-carb|no carb|carb free)/i.test(msg.text!)) {
+      // Directly handle keto requests with typo tolerance
       log(`Directly handling keto dietary preference for message: "${msg.text}"`, 'telegram-nlp');
       await bot.sendMessage(
         msg.chat.id,
