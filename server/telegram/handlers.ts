@@ -2079,8 +2079,8 @@ async function processDeliveryMethod(
   if (!activeOrder) {
     await bot.sendMessage(
       chatId,
-      "Your order seems to have expired. Would you like to start a new order?",
-      createInlineKeyboard([[{ text: "Start New Order", callback_data: "menu" }]])
+      "Your order seems to have expired. ⏱️ Would you like to start a new order?",
+      createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
     );
     return;
   }
@@ -2120,8 +2120,8 @@ async function processDeliveryInfo(
   if (!activeOrder) {
     await bot.sendMessage(
       msg.chat.id,
-      "Your order seems to have expired. Would you like to start a new order?",
-      createInlineKeyboard([[{ text: "Start New Order", callback_data: "menu" }]])
+      "Your order seems to have expired. ⏱️ Would you like to start a new order?",
+      createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
     );
     return;
   }
@@ -2161,8 +2161,8 @@ async function processDeliveryInstructions(
   if (!activeOrder) {
     await bot.sendMessage(
       msg.chat.id,
-      "Your order seems to have expired. Would you like to start a new order?",
-      createInlineKeyboard([[{ text: "Start New Order", callback_data: "menu" }]])
+      "Your order seems to have expired. ⏱️ Would you like to start a new order?",
+      createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
     );
     return;
   }
@@ -2212,8 +2212,8 @@ async function processPaymentMethod(
   if (!activeOrder) {
     await bot.sendMessage(
       chatId,
-      "Your order seems to have expired. Would you like to start a new order?",
-      createInlineKeyboard([[{ text: "Start New Order", callback_data: "menu" }]])
+      "Your order seems to have expired. ⏱️ Would you like to start a new order?",
+      createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
     );
     return;
   }
@@ -2366,8 +2366,8 @@ async function finalizeOrder(
   if (!activeOrder) {
     await bot.sendMessage(
       chatId,
-      "Your order seems to have expired. Would you like to start a new order?",
-      createInlineKeyboard([[{ text: "Start New Order", callback_data: "menu" }]])
+      "Your order seems to have expired. ⏱️ Would you like to start a new order?",
+      createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
     );
     return;
   }
