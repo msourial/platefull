@@ -291,7 +291,7 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
             {
               name: "Chicken Shawarma Salad",
               category: "Salads",
-              reasons: ["High protein, low carb option", "Fresh vegetables with marinated chicken, no pita"]
+              reasons: ["High protein, low carb option", "Fresh vegetables with marinated chicken, no pita", "Perfect for keto and low-carb diets"]
             },
             {
               name: "Beef Kafta",
