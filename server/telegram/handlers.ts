@@ -246,42 +246,91 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       break;
     
     case 'customize':
-      if (params[0]) {
-        const menuItemId = parseInt(params[0]);
-        const menuItem = await storage.getMenuItemById(menuItemId);
-        
-        if (!menuItem) {
-          await bot.sendMessage(chatId, "Sorry, this item is not available.");
-          return;
-        }
-        
-        // Get or create an order for the user
-        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
-        let orderId: number;
-        
-        if (activeOrder) {
-          orderId = activeOrder.id;
-        } else {
-          const newOrder = await createOrder(telegramUser.id);
-          orderId = newOrder.id;
-        }
-        
-        // Add the item to the order first
-        await addItemToOrder(orderId, menuItemId);
-        
-        // Then ask for customizations
-        if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
-          await askForCustomizations(bot, chatId, menuItem, orderId);
+      try {
+        if (params[0]) {
+          const menuItemId = parseInt(params[0]);
+          log(`Processing customize with ID: ${menuItemId}`, 'telegram-callback');
+          
+          const menuItem = await storage.getMenuItemById(menuItemId);
+          
+          if (!menuItem) {
+            await bot.sendMessage(chatId, "Sorry, this item is not available.");
+            return;
+          }
+          
+          log(`Found menu item for customization: ${menuItem.name}`, 'telegram-callback');
+          
+          // Get or create an order for the user
+          const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+          let orderId: number;
+          
+          if (activeOrder) {
+            orderId = activeOrder.id;
+            log(`Using existing order with ID: ${orderId}`, 'telegram-callback');
+          } else {
+            // Create a new order with explicit totalAmount to avoid validation errors
+            log(`Creating new order for user ${telegramUser.id}`, 'telegram-callback');
+            try {
+              const newOrder = await storage.createOrder({
+                telegramUserId: telegramUser.id,
+                status: "pending",
+                totalAmount: "0.00",
+                deliveryFee: "0.00",
+                isDelivery: true,
+                paymentMethod: "cash",
+                paymentStatus: "pending"
+              });
+              orderId = newOrder.id;
+              log(`Successfully created new order with ID: ${orderId}`, 'telegram-callback');
+            } catch (createOrderError) {
+              log(`Error creating order directly: ${createOrderError}`, 'telegram-error');
+              throw new Error(`Failed to create order: ${createOrderError}`);
+            }
+          }
+          
+          // Add the item to the order first
+          log(`Adding customizable menu item ${menuItemId} to order ${orderId}`, 'telegram-callback');
+          try {
+            await addItemToOrder(orderId, menuItemId);
+            log(`Successfully added item to order for customization`, 'telegram-callback');
+          } catch (addItemError) {
+            log(`Error adding item to order for customization: ${addItemError}`, 'telegram-error');
+            throw new Error(`Failed to add item to order: ${addItemError}`);
+          }
+          
+          // Then ask for customizations
+          if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
+            await askForCustomizations(bot, chatId, menuItem, orderId);
+          } else {
+            await bot.sendMessage(
+              chatId,
+              `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
+              {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "View My Order", callback_data: "view_order" }],
+                    [{ text: "Add More Items", callback_data: "menu" }],
+                    [{ text: "Checkout", callback_data: "checkout" }]
+                  ]
+                }
+              }
+            );
+          }
         } else {
           await bot.sendMessage(
             chatId,
-            `Added ${menuItem.name} to your order. Anything else?`,
-            createInlineKeyboard([
-              [{ text: "View Order", callback_data: "view_order" }],
-              [{ text: "Continue Shopping", callback_data: "menu" }]
-            ])
+            "Sorry, I couldn't find that menu item for customization. Let me show you our menu categories instead.",
+            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
           );
         }
+      } catch (error) {
+        log(`Error handling customize callback: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "Sorry, I encountered an error customizing that item. Let's try something else.",
+          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+        );
       }
       break;
       
@@ -351,89 +400,259 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       break;
       
     case 'add_item':
-      if (params[0]) {
-        const menuItemId = parseInt(params[0]);
-        const menuItem = await storage.getMenuItemById(menuItemId);
-        
-        if (!menuItem) {
-          await bot.sendMessage(chatId, "Sorry, this item is not available.");
-          return;
-        }
-        
-        // Get or create an order for the user
-        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
-        let orderId: number;
-        
-        if (activeOrder) {
-          orderId = activeOrder.id;
-        } else {
-          const newOrder = await createOrder(telegramUser.id);
-          orderId = newOrder.id;
-        }
-        
-        // Add the item to the order
-        await addItemToOrder(orderId, menuItemId);
-        
-        // If the item has customization options, ask for them
-        if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
-          await askForCustomizations(bot, chatId, menuItem, orderId);
+      try {
+        if (params[0]) {
+          const menuItemId = parseInt(params[0]);
+          log(`Processing add_item with ID: ${menuItemId}`, 'telegram-callback');
+          
+          const menuItem = await storage.getMenuItemById(menuItemId);
+          
+          if (!menuItem) {
+            await bot.sendMessage(chatId, "Sorry, this item is not available.");
+            return;
+          }
+          
+          log(`Found menu item: ${menuItem.name}, Price: ${menuItem.price}`, 'telegram-callback');
+          
+          // Get or create an order for the user
+          const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+          let orderId: number;
+          
+          if (activeOrder) {
+            orderId = activeOrder.id;
+            log(`Using existing order with ID: ${orderId}`, 'telegram-callback');
+          } else {
+            // Create a new order with explicit totalAmount to avoid validation errors
+            log(`Creating new order for user ${telegramUser.id}`, 'telegram-callback');
+            try {
+              const newOrder = await storage.createOrder({
+                telegramUserId: telegramUser.id,
+                status: "pending",
+                totalAmount: "0.00",
+                deliveryFee: "0.00",
+                isDelivery: true,
+                paymentMethod: "cash",
+                paymentStatus: "pending"
+              });
+              orderId = newOrder.id;
+              log(`Successfully created new order with ID: ${orderId}`, 'telegram-callback');
+            } catch (createOrderError) {
+              log(`Error creating order directly: ${createOrderError}`, 'telegram-error');
+              throw new Error(`Failed to create order: ${createOrderError}`);
+            }
+          }
+          
+          // Add the item to the order
+          log(`Adding menu item ${menuItemId} to order ${orderId}`, 'telegram-callback');
+          try {
+            await addItemToOrder(orderId, menuItemId);
+            log(`Successfully added item to order`, 'telegram-callback');
+          } catch (addItemError) {
+            log(`Error adding item to order: ${addItemError}`, 'telegram-error');
+            throw new Error(`Failed to add item to order: ${addItemError}`);
+          }
+          
+          // If the item has customization options, ask for them
+          if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
+            await askForCustomizations(bot, chatId, menuItem, orderId);
+          } else {
+            await bot.sendMessage(
+              chatId,
+              `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
+              {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "View My Order", callback_data: "view_order" }],
+                    [{ text: "Add More Items", callback_data: "menu" }],
+                    [{ text: "Checkout", callback_data: "checkout" }]
+                  ]
+                }
+              }
+            );
+          }
         } else {
           await bot.sendMessage(
             chatId,
-            `Added ${menuItem.name} to your order. Anything else?`,
-            createInlineKeyboard([
-              [{ text: "View Order", callback_data: "view_order" }],
-              [{ text: "Continue Shopping", callback_data: "menu" }]
-            ])
+            "Sorry, I couldn't find that menu item. Let me show you our menu categories instead.",
+            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
           );
         }
+      } catch (error) {
+        log(`Error handling add_item callback: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "Sorry, I encountered an error adding that item to your order. Let's try something else.",
+          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+        );
       }
       break;
       
     case 'customization':
-      if (params.length >= 3) {
-        const [orderItemId, optionName, choice] = params;
-        
-        // Update the order item with the chosen customization
-        const orderItem = await storage.getOrderItemById(parseInt(orderItemId));
-        
-        if (orderItem) {
-          const customizations = orderItem.customizations as Record<string, string> || {};
+      try {
+        if (params.length >= 3) {
+          const [orderItemId, optionName, choice] = params;
+          log(`Processing customization for order item ${orderItemId}, option: ${optionName}, choice: ${choice}`, 'telegram-callback');
+          
+          // Parse the order item ID safely
+          const orderItemIdNum = parseInt(orderItemId);
+          if (isNaN(orderItemIdNum)) {
+            throw new Error(`Invalid order item ID: ${orderItemId}`);
+          }
+          
+          // Update the order item with the chosen customization
+          const orderItem = await storage.getOrderItemById(orderItemIdNum);
+          
+          if (!orderItem) {
+            log(`Order item not found: ${orderItemIdNum}`, 'telegram-error');
+            await bot.sendMessage(
+              chatId,
+              "Sorry, I couldn't find that item in your order. Let me show you your current order.",
+              createInlineKeyboard([[{ text: "View Order", callback_data: "view_order" }]])
+            );
+            return;
+          }
+          
+          log(`Found order item for customization: ${JSON.stringify(orderItem)}`, 'telegram-callback');
+          
+          // Safely handle customizations object
+          const customizations = orderItem.customizations && typeof orderItem.customizations === 'object' 
+            ? orderItem.customizations as Record<string, string> 
+            : {};
+          
+          // Add the new customization choice
           customizations[optionName] = choice;
           
-          await storage.updateOrderItem(parseInt(orderItemId), {
-            customizations
-          });
-          
-          await bot.sendMessage(
-            chatId,
-            `Updated your order with ${optionName}: ${choice}. Anything else?`,
-            createInlineKeyboard([
-              [{ text: "View Order", callback_data: "view_order" }],
-              [{ text: "Continue Shopping", callback_data: "menu" }]
-            ])
-          );
+          // Update the order item
+          log(`Updating order item ${orderItemIdNum} with customization: ${optionName}=${choice}`, 'telegram-callback');
+          try {
+            await storage.updateOrderItem(orderItemIdNum, {
+              customizations
+            });
+            log(`Successfully updated order item with customization`, 'telegram-callback');
+            
+            // Get the menu item name for a better user experience
+            const menuItem = await storage.getMenuItemById(orderItem.menuItemId);
+            const itemName = menuItem ? menuItem.name : 'item';
+            
+            await bot.sendMessage(
+              chatId,
+              `Great! I've updated your *${itemName}* with *${optionName}: ${choice}*. Would you like anything else?`,
+              {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "View My Order", callback_data: "view_order" }],
+                    [{ text: "Add More Items", callback_data: "menu" }],
+                    [{ text: "Checkout", callback_data: "checkout" }]
+                  ]
+                }
+              }
+            );
+          } catch (updateError) {
+            log(`Error updating order item customization: ${updateError}`, 'telegram-error');
+            throw new Error(`Failed to update customization: ${updateError}`);
+          }
+        } else {
+          throw new Error(`Invalid customization parameters: ${params.join(', ')}`);
         }
+      } catch (error) {
+        log(`Error handling customization callback: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "Sorry, I encountered an error updating your customization. Let's try something else.",
+          createInlineKeyboard([[{ text: "View Menu", callback_data: "menu" }]])
+        );
       }
       break;
       
     case 'remove_item':
-      if (params[0]) {
-        const orderItemId = parseInt(params[0]);
-        await removeItemFromOrder(orderItemId);
-        await bot.sendMessage(chatId, "Item removed from your order.");
-        
-        // Show updated order
-        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
-        if (activeOrder) {
-          await sendOrderSummary(chatId, activeOrder.id);
+      try {
+        if (params[0]) {
+          const orderItemId = parseInt(params[0]);
+          log(`Processing remove_item with ID: ${orderItemId}`, 'telegram-callback');
+          
+          if (isNaN(orderItemId)) {
+            throw new Error(`Invalid order item ID: ${params[0]}`);
+          }
+          
+          // Verify the item exists before trying to remove it
+          const orderItem = await storage.getOrderItemById(orderItemId);
+          if (!orderItem) {
+            log(`Order item not found: ${orderItemId}`, 'telegram-error');
+            await bot.sendMessage(
+              chatId,
+              "Sorry, I couldn't find that item in your order. Let me show you your current order.",
+              createInlineKeyboard([[{ text: "View Order", callback_data: "view_order" }]])
+            );
+            return;
+          }
+          
+          // Look up the item name before removal for better user feedback
+          let itemName = "Item";
+          try {
+            const menuItem = await storage.getMenuItemById(orderItem.menuItemId);
+            if (menuItem) {
+              itemName = menuItem.name;
+            }
+          } catch (menuItemError) {
+            log(`Failed to get menu item details: ${menuItemError}`, 'telegram-error');
+          }
+          
+          // Remove the item
+          log(`Removing order item ${orderItemId} from order`, 'telegram-callback');
+          try {
+            await removeItemFromOrder(orderItemId);
+            log(`Successfully removed item from order`, 'telegram-callback');
+            
+            await bot.sendMessage(
+              chatId, 
+              `I've removed *${itemName}* from your order.`, 
+              { parse_mode: 'Markdown' }
+            );
+            
+            // Show updated order
+            const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+            if (activeOrder) {
+              // Check if there are any items left
+              const orderItems = await storage.getOrderItems(activeOrder.id);
+              if (orderItems && orderItems.length > 0) {
+                await sendOrderSummary(chatId, activeOrder.id);
+              } else {
+                // Order exists but has no items
+                await bot.sendMessage(
+                  chatId,
+                  "Your order is now empty. Would you like to browse our menu?",
+                  createInlineKeyboard([
+                    [{ text: "Browse Menu", callback_data: "menu" }],
+                    [{ text: "Get Recommendations", callback_data: "special_request" }]
+                  ])
+                );
+              }
+            } else {
+              await bot.sendMessage(
+                chatId,
+                "Your order is now empty. Would you like to see our menu?",
+                createInlineKeyboard([
+                  [{ text: "Browse Menu", callback_data: "menu" }],
+                  [{ text: "Get Recommendations", callback_data: "special_request" }]
+                ])
+              );
+            }
+          } catch (removeError) {
+            log(`Error removing item from order: ${removeError}`, 'telegram-error');
+            throw new Error(`Failed to remove item from order: ${removeError}`);
+          }
         } else {
-          await bot.sendMessage(
-            chatId,
-            "Your order is now empty. Would you like to see the menu?",
-            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
-          );
+          throw new Error(`Missing order item ID parameter`);
         }
+      } catch (error) {
+        log(`Error handling remove_item callback: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "Sorry, I encountered an error removing that item. Let me show you your current order.",
+          createInlineKeyboard([[{ text: "View Order", callback_data: "view_order" }]])
+        );
       }
       break;
       
@@ -452,20 +671,56 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       break;
       
     case 'empty_cart':
-      const order = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
-      
-      if (order) {
-        await clearOrder(order.id);
+      try {
+        log(`Processing empty_cart request for user ${telegramUser.id}`, 'telegram-callback');
+        
+        const order = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+        
+        if (order) {
+          log(`Found active order ${order.id} to clear`, 'telegram-callback');
+          
+          try {
+            await clearOrder(order.id);
+            log(`Successfully cleared order ${order.id}`, 'telegram-callback');
+            
+            await bot.sendMessage(
+              chatId,
+              "Your order has been cleared. Would you like to start a new order?",
+              {
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "Browse Menu Categories", callback_data: "menu" }],
+                    [{ text: "Get Personalized Recommendations", callback_data: "special_request" }]
+                  ]
+                }
+              }
+            );
+          } catch (clearError) {
+            log(`Error clearing order: ${clearError}`, 'telegram-error');
+            throw new Error(`Failed to clear order: ${clearError}`);
+          }
+        } else {
+          log(`No active order found for user ${telegramUser.id}`, 'telegram-callback');
+          
+          await bot.sendMessage(
+            chatId,
+            "You don't have any active orders. Would you like to see our menu?",
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "Browse Menu Categories", callback_data: "menu" }],
+                  [{ text: "Get Personalized Recommendations", callback_data: "special_request" }]
+                ]
+              }
+            }
+          );
+        }
+      } catch (error) {
+        log(`Error handling empty_cart callback: ${error}`, 'telegram-error');
         await bot.sendMessage(
           chatId,
-          "Your order has been cleared. Would you like to start a new order?",
-          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
-        );
-      } else {
-        await bot.sendMessage(
-          chatId,
-          "You don't have any active orders. Would you like to see our menu?",
-          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          "Sorry, I encountered an error clearing your order. Please try again later.",
+          createInlineKeyboard([[{ text: "View Your Order", callback_data: "view_order" }]])
         );
       }
       break;

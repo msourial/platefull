@@ -451,6 +451,16 @@ export const storage = {
     });
   },
   
+  // Alias for getOrderItemsByOrderId to support both naming conventions
+  getOrderItems: async (orderId: number) => {
+    return await db.query.orderItems.findMany({
+      where: eq(schema.orderItems.orderId, orderId),
+      with: {
+        menuItem: true
+      }
+    });
+  },
+  
   getOrderItemById: async (id: number) => {
     return await db.query.orderItems.findFirst({
       where: eq(schema.orderItems.id, id),
