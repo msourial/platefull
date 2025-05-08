@@ -164,6 +164,49 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
       return response;
     }
     
+    // Check for dietary preferences before going to AI
+    if (hasDietaryPreference(normalizedText)) {
+      const dietaryPreference = extractDietaryPreference(normalizedText);
+      
+      if (dietaryPreference === 'vegetarian' || dietaryPreference === 'vegan') {
+        const response = {
+          intent: "dietary_recommendation",
+          message: `For ${dietaryPreference} options, I'd recommend our Falafel Wrap or Falafel Platter. Falafel is made from chickpeas and herbs, making it a delicious ${dietaryPreference} option. Would you like me to add one of these to your order? Or would you prefer to see more ${dietaryPreference} options?`,
+          recommendations: [
+            {
+              name: "Falafel Wrap",
+              category: "Pitas & Wraps",
+              reasons: [`Perfect ${dietaryPreference} option made from spiced chickpeas`, "Wrapped with fresh vegetables and tahini sauce"]
+            },
+            {
+              name: "Falafel Platter",
+              category: "Platters",
+              reasons: [`A complete ${dietaryPreference} meal`, "Includes falafel, hummus, salad, and rice or fries"]
+            },
+            {
+              name: "Vegetarian Platter",
+              category: "Platters",
+              reasons: ["Variety of plant-based Lebanese mezze", "Includes hummus, tabbouleh, and more vegetable options"]
+            }
+          ],
+          followUpQuestions: [
+            "Would you like your falafel spicy or mild?",
+            "Do you have any allergies I should know about?",
+            "Would you prefer a wrap or a full platter with sides?"
+          ]
+        };
+        
+        // Add bot response to conversation history
+        await storage.addMessageToConversation({
+          conversationId: conversation.id,
+          text: response.message,
+          isFromUser: false
+        });
+        
+        return response;
+      }
+    }
+    
     // For other inputs, use AI recommendations
     try {
       // Use the OpenAI to process the natural language and get food recommendations
@@ -425,4 +468,83 @@ function extractSpecialInstructions(text: string, item: string): string | undefi
   }
   
   return undefined;
+}
+
+/**
+ * Detects if the user text contains dietary preference keywords
+ * @param text The user's message
+ * @returns Whether the text contains dietary preference indicators
+ */
+function hasDietaryPreference(text: string): boolean {
+  const dietaryKeywords = [
+    'vegetarian', 'vegan', 'plant-based', 'plant based', 'no meat', 'without meat', 
+    'gluten-free', 'gluten free', 'dairy-free', 'dairy free', 'lactose', 'halal',
+    'no dairy', 'meat-free', 'vegetable', 'vegetables', 'meatless', 'veggie',
+    'allergy', 'allergic', 'allergies', 'intolerance', 'no nuts', 'nut-free', 
+    'no gluten', 'health', 'diet', 'dieting', 'healthy', 'low calorie',
+    'low-calorie', 'spicy', 'mild', 'hot', 'vertarin', 'vegitarian', 'veg'
+  ];
+  
+  return dietaryKeywords.some(keyword => text.toLowerCase().includes(keyword));
+}
+
+/**
+ * Extracts the specific dietary preference from user text
+ * @param text The user's message
+ * @returns The identified dietary preference
+ */
+function extractDietaryPreference(text: string): string {
+  const normalizedText = text.toLowerCase();
+  
+  // Vegetarian related keywords (including common misspellings)
+  if (normalizedText.includes('vegetarian') || normalizedText.includes('veggie') || 
+      normalizedText.includes('no meat') || normalizedText.includes('meat-free') || 
+      normalizedText.includes('meatless') || normalizedText.includes('vertarin') || 
+      normalizedText.includes('vegitarian') || normalizedText.includes('veg')) {
+    return 'vegetarian';
+  }
+  
+  // Vegan related keywords
+  if (normalizedText.includes('vegan') || normalizedText.includes('plant-based') || 
+      normalizedText.includes('plant based') || normalizedText.includes('no animal products')) {
+    return 'vegan';
+  }
+  
+  // Gluten-free related keywords
+  if (normalizedText.includes('gluten-free') || normalizedText.includes('gluten free') || 
+      normalizedText.includes('no gluten') || normalizedText.includes('without gluten')) {
+    return 'gluten-free';
+  }
+  
+  // Dairy-free related keywords
+  if (normalizedText.includes('dairy-free') || normalizedText.includes('dairy free') || 
+      normalizedText.includes('no dairy') || normalizedText.includes('lactose') || 
+      normalizedText.includes('without dairy')) {
+    return 'dairy-free';
+  }
+  
+  // Halal related keywords
+  if (normalizedText.includes('halal')) {
+    return 'halal';
+  }
+  
+  // Nut-free related keywords
+  if (normalizedText.includes('nut-free') || normalizedText.includes('nut free') || 
+      normalizedText.includes('no nuts') || normalizedText.includes('without nuts') || 
+      normalizedText.includes('allergic to nuts')) {
+    return 'nut-free';
+  }
+  
+  // Spice level preferences
+  if (normalizedText.includes('spicy') || normalizedText.includes('hot')) {
+    return 'spicy';
+  }
+  
+  if (normalizedText.includes('mild') || normalizedText.includes('not spicy') || 
+      normalizedText.includes('no spice')) {
+    return 'mild';
+  }
+  
+  // Default fallback for other health/dietary mentions
+  return 'special-diet';
 }
