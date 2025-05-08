@@ -1103,26 +1103,58 @@ async function processNaturalLanguageInput(
         // Add item to order with special instructions if any
         const orderItem = await addItemToOrder(orderId, menuItem.id, 1, response.specialInstructions);
         
-        // Confirmation message with Markdown formatting
+        // Confirmation message with Markdown formatting and emojis
         await bot.sendMessage(
           msg.chat.id,
-          `*Added to your order:* ${menuItem.name}${response.specialInstructions ? `\n_Special instructions: ${response.specialInstructions}_` : ''}\n\nWould you like anything else?`,
+          `✅ *Added to your order:* ${menuItem.name}${response.specialInstructions ? `\n_Special instructions: ${response.specialInstructions}_` : ''}`,
           {
-            parse_mode: 'Markdown',
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: "View Order", callback_data: "view_order" }],
-                [{ text: "Continue Shopping", callback_data: "menu" }],
-                [{ text: "Checkout", callback_data: "checkout" }]
-              ]
-            }
+            parse_mode: 'Markdown'
           }
         );
         
         // If item has customization options, ask for them
         if (menuItem.customizationOptions && menuItem.customizationOptions.length > 0) {
           await askForCustomizations(bot, msg.chat.id, menuItem, orderId);
+          return; // Stop here as we're now asking for customizations
         }
+        
+        // Check the category of the item to determine appropriate follow-up
+        const category = await storage.getCategoryById(menuItem.categoryId);
+        
+        if (category) {
+          // For main dishes (pitas, wraps, platters), ask about sides
+          if (['Pitas', 'Wraps', 'Platters', 'Main Dishes'].includes(category.name)) {
+            await suggestSides(bot, msg.chat.id, orderId, menuItem);
+            return;
+          }
+          
+          // For sides, suggest drinks if not already ordered
+          if (['Sides', 'Salads'].includes(category.name)) {
+            await suggestDrinks(bot, msg.chat.id, orderId);
+            return;
+          }
+          
+          // For drinks, suggest desserts if not already ordered
+          if (['Beverages', 'Drinks'].includes(category.name)) {
+            await suggestDesserts(bot, msg.chat.id, orderId);
+            return;
+          }
+        }
+        
+        // Default fallback if no specific suggestions
+        await bot.sendMessage(
+          msg.chat.id,
+          "Would you like to add anything else to your order? 🍽️",
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🛒 View Order", callback_data: "view_order" }],
+                [{ text: "📋 Continue Shopping", callback_data: "menu" }],
+                [{ text: "💳 Checkout", callback_data: "checkout" }]
+              ]
+            }
+          }
+        );
       } else {
         // Multiple matches found - present options with prices and descriptions
         await bot.sendMessage(
@@ -1421,6 +1453,9 @@ async function processNaturalLanguageInput(
   }
 }
 
+/**
+ * Ask user for customization options for their menu item
+ */
 async function askForCustomizations(
   bot: TelegramBot,
   chatId: number,
@@ -1442,13 +1477,233 @@ async function askForCustomizations(
     
     await bot.sendMessage(
       chatId,
-      `Please select ${option.name} for your ${menuItem.name}:`,
+      `Please select ${option.name} for your ${menuItem.name}: 👇`,
       createInlineKeyboard(keyboard)
     );
     
     // Only ask for one customization at a time
     break;
   }
+}
+
+/**
+ * Suggests side dishes after ordering a main course
+ */
+async function suggestSides(
+  bot: TelegramBot,
+  chatId: number,
+  orderId: number,
+  mainItem: any
+) {
+  // Find all active side dishes
+  const sideCategories = await storage.getCategories();
+  const sidesCategory = sideCategories.find(c => 
+    ['Sides', 'Salads', 'Side Dishes'].includes(c.name)
+  );
+  
+  if (!sidesCategory) {
+    // Fallback if sides category not found
+    await suggestDrinks(bot, chatId, orderId);
+    return;
+  }
+  
+  // Get popular sides
+  const sideItems = await storage.getMenuItems(sidesCategory.id);
+  const popularSides = sideItems.slice(0, 3); // Take up to 3 popular sides
+  
+  if (popularSides.length === 0) {
+    // No sides available, skip to drink suggestions
+    await suggestDrinks(bot, chatId, orderId);
+    return;
+  }
+  
+  // Create a message with emojis
+  const itemName = mainItem.name || 'meal';
+  const message = `Would you like to add a side to your ${itemName}? 🥗`;
+  
+  // Create keyboard with side options
+  const keyboard = popularSides.map(side => [
+    { 
+      text: `${side.name} - $${parseFloat(side.price.toString()).toFixed(2)}`, 
+      callback_data: `add_item:${side.id}` 
+    }
+  ]);
+  
+  // Add options to skip
+  keyboard.push([{ text: "No sides, thanks", callback_data: "no_sides" }]);
+  keyboard.push([{ text: "See all sides", callback_data: `category:${sidesCategory.id}` }]);
+  
+  await bot.sendMessage(
+    chatId,
+    message,
+    createInlineKeyboard(keyboard)
+  );
+}
+
+/**
+ * Suggests drinks after ordering a main course or sides
+ */
+async function suggestDrinks(
+  bot: TelegramBot,
+  chatId: number,
+  orderId: number
+) {
+  // Find drinks category
+  const categories = await storage.getCategories();
+  const drinksCategory = categories.find(c => 
+    ['Beverages', 'Drinks'].includes(c.name)
+  );
+  
+  if (!drinksCategory) {
+    // Fallback if drinks category not found
+    await askForMoreItems(bot, chatId, orderId);
+    return;
+  }
+  
+  // Get popular drinks
+  const drinkItems = await storage.getMenuItems(drinksCategory.id);
+  const popularDrinks = drinkItems.slice(0, 3); // Take up to 3 popular drinks
+  
+  if (popularDrinks.length === 0) {
+    // No drinks available, skip to final step
+    await askForMoreItems(bot, chatId, orderId);
+    return;
+  }
+  
+  // Check if user already has drinks in their order
+  const orderItems = await storage.getOrderItemsByOrderId(orderId);
+  const hasDrink = orderItems.some(item => {
+    const menuItem = item.menuItem;
+    return menuItem && menuItem.categoryId === drinksCategory.id;
+  });
+  
+  if (hasDrink) {
+    // User already has a drink, skip to desserts
+    await suggestDesserts(bot, chatId, orderId);
+    return;
+  }
+  
+  // Create a message with emojis
+  const message = "Would you like to add a refreshing drink to your order? 🥤";
+  
+  // Create keyboard with drink options
+  const keyboard = popularDrinks.map(drink => [
+    { 
+      text: `${drink.name} - $${parseFloat(drink.price.toString()).toFixed(2)}`, 
+      callback_data: `add_item:${drink.id}` 
+    }
+  ]);
+  
+  // Add options to skip
+  keyboard.push([{ text: "No drinks, thanks", callback_data: "no_drinks" }]);
+  keyboard.push([{ text: "See all drinks", callback_data: `category:${drinksCategory.id}` }]);
+  
+  await bot.sendMessage(
+    chatId,
+    message,
+    createInlineKeyboard(keyboard)
+  );
+}
+
+/**
+ * Suggests desserts after ordering main items
+ */
+async function suggestDesserts(
+  bot: TelegramBot,
+  chatId: number,
+  orderId: number
+) {
+  // Find desserts category
+  const categories = await storage.getCategories();
+  const dessertsCategory = categories.find(c => 
+    ['Desserts', 'Sweets'].includes(c.name)
+  );
+  
+  if (!dessertsCategory) {
+    // Fallback if desserts category not found
+    await askForMoreItems(bot, chatId, orderId);
+    return;
+  }
+  
+  // Get popular desserts
+  const dessertItems = await storage.getMenuItems(dessertsCategory.id);
+  const popularDesserts = dessertItems.slice(0, 2); // Take up to 2 popular desserts
+  
+  if (popularDesserts.length === 0) {
+    // No desserts available, skip to final step
+    await askForMoreItems(bot, chatId, orderId);
+    return;
+  }
+  
+  // Check if user already has desserts in their order
+  const orderItems = await storage.getOrderItemsByOrderId(orderId);
+  const hasDessert = orderItems.some(item => {
+    const menuItem = item.menuItem;
+    return menuItem && menuItem.categoryId === dessertsCategory.id;
+  });
+  
+  if (hasDessert) {
+    // User already has a dessert, skip to final step
+    await askForMoreItems(bot, chatId, orderId);
+    return;
+  }
+  
+  // Create a message with emojis
+  const message = "Would you like to complete your meal with a sweet dessert? 🍰";
+  
+  // Create keyboard with dessert options
+  const keyboard = popularDesserts.map(dessert => [
+    { 
+      text: `${dessert.name} - $${parseFloat(dessert.price.toString()).toFixed(2)}`, 
+      callback_data: `add_item:${dessert.id}` 
+    }
+  ]);
+  
+  // Add options to skip
+  keyboard.push([{ text: "No dessert, thanks", callback_data: "no_dessert" }]);
+  keyboard.push([{ text: "See all desserts", callback_data: `category:${dessertsCategory.id}` }]);
+  
+  await bot.sendMessage(
+    chatId,
+    message,
+    createInlineKeyboard(keyboard)
+  );
+}
+
+/**
+ * Final step in the ordering flow - ask if user wants anything else
+ */
+async function askForMoreItems(
+  bot: TelegramBot,
+  chatId: number,
+  orderId: number
+) {
+  // Show order summary and ask what to do next
+  const order = await storage.getOrderById(orderId);
+  
+  if (!order) return;
+  
+  const total = order.orderItems.reduce((sum, item) => {
+    const price = parseFloat(item.price.toString());
+    const quantity = item.quantity || 1;
+    return sum + (price * quantity);
+  }, 0);
+  
+  // Final message with emojis
+  await bot.sendMessage(
+    chatId,
+    `Your order is looking great! 👍 Current total: *$${total.toFixed(2)}*\n\nWhat would you like to do next?`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🛒 View Order", callback_data: "view_order" }],
+          [{ text: "📋 Continue Shopping", callback_data: "menu" }],
+          [{ text: "💳 Checkout", callback_data: "checkout" }]
+        ]
+      }
+    }
+  );
 }
 
 async function promptDeliveryOptions(
