@@ -199,12 +199,66 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
           try {
             await addItemToOrder(orderId, menuItemId);
             log(`Successfully added item to order`, 'telegram-callback');
+            
+            // Check the category of the item to determine appropriate follow-up
+            const category = await storage.getCategoryById(menuItem.categoryId);
+            
+            // Update conversation context to track ordering flow
+            if (category) {
+              // For main dishes, set context for suggesting sides
+              if (['Pitas', 'Wraps', 'Platters', 'Main Dishes'].includes(category.name)) {
+                await storage.updateConversation(conversation.id, {
+                  context: {
+                    ...conversation.context,
+                    lastOrderedItem: menuItem.name,
+                    lastOrderedCategory: category.name,
+                    pendingSuggestSides: true,
+                    pendingSuggestDrinks: false,
+                    pendingSuggestDesserts: false
+                  }
+                });
+                await suggestSides(bot, chatId, orderId, menuItem);
+                return;
+              }
+              
+              // For sides, set context for suggesting drinks
+              if (['Sides', 'Salads'].includes(category.name)) {
+                await storage.updateConversation(conversation.id, {
+                  context: {
+                    ...conversation.context,
+                    lastOrderedItem: menuItem.name,
+                    lastOrderedCategory: category.name,
+                    pendingSuggestSides: false,
+                    pendingSuggestDrinks: true,
+                    pendingSuggestDesserts: false
+                  }
+                });
+                await suggestDrinks(bot, chatId, orderId);
+                return;
+              }
+              
+              // For drinks, set context for suggesting desserts
+              if (['Beverages', 'Drinks'].includes(category.name)) {
+                await storage.updateConversation(conversation.id, {
+                  context: {
+                    ...conversation.context,
+                    lastOrderedItem: menuItem.name,
+                    lastOrderedCategory: category.name,
+                    pendingSuggestSides: false,
+                    pendingSuggestDrinks: false,
+                    pendingSuggestDesserts: true
+                  }
+                });
+                await suggestDesserts(bot, chatId, orderId);
+                return;
+              }
+            }
           } catch (addItemError) {
             log(`Error adding item to order: ${addItemError}`, 'telegram-error');
             throw new Error(`Failed to add item to order: ${addItemError}`);
           }
           
-          // Provide a confirmation
+          // Default fallback if no specific category-based suggestion flow
           await bot.sendMessage(
             chatId,
             `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
@@ -1807,7 +1861,7 @@ async function suggestSides(
   const itemName = mainItem.name || 'meal';
   const message = `Would you like to add a side to your ${itemName}? 🥗`;
   
-  // Create keyboard with side options
+  // Create keyboard with side options and prices
   const keyboard = popularSides.map(side => [
     { 
       text: `${side.name} - $${parseFloat(side.price.toString()).toFixed(2)}`, 
