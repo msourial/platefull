@@ -212,8 +212,14 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
 // Helper functions for intent recognition
 
 function isGreeting(text: string): boolean {
-  const greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 'howdy'];
-  return greetings.some(greeting => text.includes(greeting));
+  const normalizedText = text.toLowerCase();
+  const greetings = [
+    'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 
+    'howdy', 'yo', 'hiya', 'sup', 'what\'s up', 'whats up', 'how are you', 'hola', 
+    'bonjour', 'salam', 'marhaba', 'start', 'begin', '/start', 'let\'s start', 
+    'lets start', 'hi there', 'hello there', 'get started'
+  ];
+  return greetings.some(greeting => normalizedText.includes(greeting));
 }
 
 function isMenuRequest(text: string): boolean {

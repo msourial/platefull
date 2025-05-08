@@ -329,12 +329,17 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
 async function sendWelcomeMessage(bot: TelegramBot, chatId: number) {
   await bot.sendMessage(
     chatId,
-    "👋 Welcome to Delicious Restaurant! I'm your AI assistant and I'm here to help you order delicious food. Would you like to see our menu, or do you already know what you'd like to order?",
-    createInlineKeyboard([
-      [{ text: "Show me the menu", callback_data: "menu" }],
-      [{ text: "I know what I want", callback_data: "direct_order" }],
-      [{ text: "Special requests", callback_data: "special_request" }]
-    ])
+    "👋 *Welcome to Boustan Lebanese Restaurant!* I'm your AI assistant and I'm here to help you order delicious authentic Lebanese food.\n\nI can recommend dishes based on your preferences - just tell me what you're in the mood for! For example, you can say *\"I want something spicy\"* or *\"What's good for vegetarians?\"*",
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "Browse Menu Categories", callback_data: "menu" }],
+          [{ text: "I Know What I Want", callback_data: "direct_order" }],
+          [{ text: "Recommend Something", callback_data: "special_request" }]
+        ]
+      }
+    }
   );
 }
 

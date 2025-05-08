@@ -119,7 +119,7 @@ export const sendMenuItems = async (chatId: number, categoryId: number) => {
     );
     
     for (const item of menuItems) {
-      const message = `*${item.name}* - $${parseFloat(item.price.toString()).toFixed(2)}\n${item.description}`;
+      const message = `*${item.name}* - $${parseFloat(item.price.toString()).toFixed(2)}\n${item.description || 'Delicious choice!'}`;
       
       const keyboard = [
         [{
@@ -128,22 +128,13 @@ export const sendMenuItems = async (chatId: number, categoryId: number) => {
         }]
       ];
       
-      if (item.imageUrl) {
-        await getBot().sendPhoto(chatId, item.imageUrl, {
-          caption: message,
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: keyboard
-          }
-        });
-      } else {
-        await getBot().sendMessage(chatId, message, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: keyboard
-          }
-        });
-      }
+      // For now, let's send all items as text messages to avoid image loading issues
+      await getBot().sendMessage(chatId, message, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: keyboard
+        }
+      });
     }
     
     // Add a navigation button to go back to categories
