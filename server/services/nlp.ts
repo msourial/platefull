@@ -502,6 +502,26 @@ function extractCategory(text: string): string | undefined {
 }
 
 async function extractOrderItem(text: string): Promise<{ item: string, specialInstructions?: string } | undefined> {
+  // Check common patterns for ordering food first
+  const orderPatterns = [
+    /can i (?:have|get|order) (?:a|an|some|the)? (.+?)(?:\s+with\s+(.+))?$/i,  // Can I have a chicken shawarma with garlic sauce
+    /i(?:'d| would) like (?:to order )?(?:a|an|some|the)? (.+?)(?:\s+with\s+(.+))?$/i, // I'd like a falafel wrap with extra tahini
+    /(?:give me|i want|let me get|i'll take|i'll have) (?:a|an|some|the)? (.+?)(?:\s+with\s+(.+))?$/i, // Give me a kafta plate with extra sauce
+    /(?:one|1|a single) (.+?)(?:\s+with\s+(.+))?$/i, // One chicken shawarma with extra pickles
+  ];
+  
+  for (const pattern of orderPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const [_, itemName, specialInstructions] = match;
+      log(`Pattern matched order: ${itemName}, instructions: ${specialInstructions || 'none'}`, 'nlp-service-debug');
+      return {
+        item: itemName.trim(),
+        specialInstructions: specialInstructions ? specialInstructions.trim() : undefined
+      };
+    }
+  }
+  
   // Handle single-word food items specially
   const words = text.trim().split(/\s+/);
   if (words.length === 1) {
@@ -514,6 +534,7 @@ async function extractOrderItem(text: string): Promise<{ item: string, specialIn
       'chicken': 'Chicken Shawarma Pita',
       'falafel': 'Falafel Pita',
       'shawarma': 'Chicken Shawarma Pita',
+      'shish': 'Shish Taouk Pita',
       'kebab': 'Kafta Platter',
       'kafta': 'Kafta Platter',
       'taouk': 'Shish Taouk Pita',
@@ -525,7 +546,7 @@ async function extractOrderItem(text: string): Promise<{ item: string, specialIn
       'coke': 'Coke',
       'pepsi': 'Coke',
       'soda': 'Coke',
-      'drink': 'Coke',
+      'drink': 'Soft Drinks',
       'baklava': 'Baklava',
       'salad': 'Fattoush'
     };
