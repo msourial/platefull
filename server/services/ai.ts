@@ -262,7 +262,12 @@ export async function analyzeUserPreferences(telegramUserId: string): Promise<{
     // Get conversation history
     const conversation = await storage.getConversationByTelegramUserId(Number(telegramUserId));
     
-    if (!conversation || !conversation.messages || conversation.messages.length === 0) {
+    // Get messages directly using the storage method if relationship-based query didn't work
+    const messages = conversation ? 
+      await storage.getConversationMessages(conversation.id) : 
+      [];
+    
+    if (!conversation || messages.length === 0) {
       return {
         preferences: {
           likes: [],
@@ -290,7 +295,7 @@ Response format (for internal processing):
 }`;
 
     // Format conversation history
-    const conversationHistory = conversation.messages.map((msg: any) => {
+    const conversationHistory = messages.map((msg) => {
       return {
         role: msg.isFromUser ? "user" : "assistant",
         content: msg.text

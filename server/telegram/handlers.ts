@@ -135,6 +135,45 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       await storage.updateConversation(conversation.id, { state: 'menu_selection' });
       break;
       
+    case 'follow_up':
+      // This is a follow-up question from AI recommendations
+      // The question text is stored in context, retrieve it and process as a message
+      
+      if (!conversation.context || !conversation.context.followUpQuestions || !params[0]) {
+        await bot.sendMessage(
+          chatId,
+          "I'm sorry, I lost track of our conversation. How can I help you?",
+          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+        );
+        break;
+      }
+      
+      const questionIndex = parseInt(params[0]);
+      const followUpQuestions = conversation.context.followUpQuestions as string[];
+      
+      if (questionIndex >= 0 && questionIndex < followUpQuestions.length) {
+        const question = followUpQuestions[questionIndex];
+        
+        // Create a fake message to process the follow-up question
+        const fakeMessage: TelegramBot.Message = {
+          message_id: Date.now(),
+          from: query.from,
+          chat: query.message.chat,
+          date: Math.floor(Date.now() / 1000),
+          text: question
+        };
+        
+        // Process this as a regular message
+        await handleIncomingMessage(bot, fakeMessage);
+      } else {
+        await bot.sendMessage(
+          chatId,
+          "I'm sorry, I don't recognize that question. How can I help you?",
+          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+        );
+      }
+      break;
+      
     case 'category':
       if (params[0]) {
         const categoryId = parseInt(params[0]);
@@ -405,8 +444,74 @@ async function processNaturalLanguageInput(
           createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
         );
       }
+    } else if (response.intent === "recommendation") {
+      // AI has provided recommendations based on user query
+      await bot.sendMessage(
+        msg.chat.id,
+        response.message || "Based on what you're looking for, I have some recommendations for you!"
+      );
+      
+      // Store follow-up questions in conversation context for later use
+      if (response.followUpQuestions && response.followUpQuestions.length > 0) {
+        await storage.updateConversation(conversation.id, {
+          context: {
+            ...conversation.context,
+            followUpQuestions: response.followUpQuestions
+          }
+        });
+      }
+      
+      // If we have specific recommendations, show them with buttons to add to cart
+      if (response.recommendations && response.recommendations.length > 0) {
+        // Get the actual menu items to show prices and details
+        const recommendedItems = await Promise.all(
+          response.recommendations.map(async (rec) => {
+            const items = await storage.getMenuItemsByName(rec.name);
+            return items.length > 0 ? items[0] : null;
+          })
+        );
+        
+        // Filter out any null items
+        const validItems = recommendedItems.filter(item => item !== null);
+        
+        if (validItems.length > 0) {
+          // Create buttons for each recommendation
+          const keyboard = validItems.map(item => [
+            { text: `Add ${item!.name} - $${parseFloat(item!.price.toString()).toFixed(2)}`, callback_data: `add_item:${item!.id}` }
+          ]);
+          
+          // Add a "View Menu" button at the end
+          keyboard.push([{ text: "View Full Menu", callback_data: "menu" }]);
+          
+          await bot.sendMessage(
+            msg.chat.id,
+            "Would you like to add any of these to your order?",
+            createInlineKeyboard(keyboard)
+          );
+        }
+        
+        // If we have follow-up questions, create buttons for them
+        if (response.followUpQuestions && response.followUpQuestions.length > 0) {
+          const questionKeyboard = response.followUpQuestions.map((question, index) => [
+            { text: question, callback_data: `follow_up:${index}` }
+          ]);
+          
+          await bot.sendMessage(
+            msg.chat.id,
+            "You can also ask me more about:",
+            createInlineKeyboard(questionKeyboard)
+          );
+        }
+      } else {
+        // Default menu button if we don't have specific recommendations
+        await bot.sendMessage(
+          msg.chat.id,
+          "Would you like to see our full menu?",
+          createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+        );
+      }
     } else {
-      // Default response
+      // Default response for other intents
       await bot.sendMessage(
         msg.chat.id,
         response.message || "I'm not sure what you're looking for. Would you like to see our menu?",

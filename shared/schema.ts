@@ -143,9 +143,22 @@ export const conversations = pgTable("conversations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Conversation messages table
+export const conversationMessages = pgTable("conversation_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => conversations.id).notNull(),
+  text: text("text").notNull(),
+  isFromUser: boolean("is_from_user").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 export const insertConversationSchema = createInsertSchema(conversations);
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
+
+export const insertConversationMessageSchema = createInsertSchema(conversationMessages);
+export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
+export type ConversationMessage = typeof conversationMessages.$inferSelect;
 
 // Define all relations
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -177,6 +190,11 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   menuItem: one(menuItems, { fields: [orderItems.menuItemId], references: [menuItems.id] }),
 }));
 
-export const conversationsRelations = relations(conversations, ({ one }) => ({
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
   telegramUser: one(telegramUsers, { fields: [conversations.telegramUserId], references: [telegramUsers.id] }),
+  messages: many(conversationMessages)
+}));
+
+export const conversationMessagesRelations = relations(conversationMessages, ({ one }) => ({
+  conversation: one(conversations, { fields: [conversationMessages.conversationId], references: [conversations.id] })
 }));

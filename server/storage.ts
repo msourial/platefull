@@ -50,7 +50,7 @@ export const storage = {
       }
     });
   },
-
+  
   getMenuItemsByName: async (query: string) => {
     return await db.query.menuItems.findMany({
       where: and(
@@ -58,7 +58,8 @@ export const storage = {
         eq(schema.menuItems.isAvailable, true)
       ),
       with: {
-        category: true
+        category: true,
+        customizationOptions: true
       }
     });
   },
@@ -94,7 +95,12 @@ export const storage = {
   // Conversation methods
   getConversationByTelegramUserId: async (telegramUserId: number) => {
     return await db.query.conversations.findFirst({
-      where: eq(schema.conversations.telegramUserId, telegramUserId)
+      where: eq(schema.conversations.telegramUserId, telegramUserId),
+      with: {
+        messages: {
+          orderBy: asc(schema.conversationMessages.timestamp)
+        }
+      }
     });
   },
 
@@ -117,6 +123,27 @@ export const storage = {
       .where(eq(schema.conversations.id, id))
       .returning();
     return updatedConversation;
+  },
+  
+  // Conversation messages methods
+  addMessageToConversation: async (message: schema.InsertConversationMessage) => {
+    try {
+      schema.insertConversationMessageSchema.parse(message);
+      const [newMessage] = await db.insert(schema.conversationMessages).values(message).returning();
+      return newMessage;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(fromZodError(error).message);
+      }
+      throw error;
+    }
+  },
+  
+  getConversationMessages: async (conversationId: number) => {
+    return await db.query.conversationMessages.findMany({
+      where: eq(schema.conversationMessages.conversationId, conversationId),
+      orderBy: asc(schema.conversationMessages.timestamp)
+    });
   },
 
   // Order methods
@@ -266,6 +293,15 @@ export const storage = {
   getOrderItemsByOrderId: async (orderId: number) => {
     return await db.query.orderItems.findMany({
       where: eq(schema.orderItems.orderId, orderId),
+      with: {
+        menuItem: true
+      }
+    });
+  },
+  
+  getOrderItemById: async (id: number) => {
+    return await db.query.orderItems.findFirst({
+      where: eq(schema.orderItems.id, id),
       with: {
         menuItem: true
       }

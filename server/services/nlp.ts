@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { log } from "../vite";
+import { getRecommendations } from "./ai";
 
 interface NlpResponse {
   intent: string;
@@ -7,10 +8,13 @@ interface NlpResponse {
   item?: string;
   category?: string;
   specialInstructions?: string;
+  recommendations?: {
+    name: string;
+    category: string;
+    reasons: string[];
+  }[];
+  followUpQuestions?: string[];
 }
-
-// This is a simplified NLP implementation
-// In a real-world scenario, this would use a more sophisticated NLP library or service
 
 /**
  * Process natural language input from a user
@@ -32,12 +36,40 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
       };
     }
     
+    // Store the message in conversation history
+    let conversation = await storage.getConversationByTelegramUserId(user.id);
+    
+    // Create a new conversation if none exists
+    if (!conversation) {
+      conversation = await storage.createConversation({
+        telegramUserId: user.id,
+        state: "initial",
+        context: {}
+      });
+    }
+    
+    // Add user message to conversation history
+    await storage.addMessageToConversation({
+      conversationId: conversation.id,
+      text: text,
+      isFromUser: true
+    });
+    
     // Check for greetings and welcome messages
     if (isGreeting(normalizedText)) {
-      return {
+      const response = {
         intent: "greeting",
-        message: "Hello! I'm your restaurant assistant. Would you like to see our menu?"
+        message: "Hello! I'm your restaurant assistant for Boustan. Would you like me to help you find something delicious to eat today?"
       };
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: response.message,
+        isFromUser: false
+      });
+      
+      return response;
     }
     
     // Check for menu requests
@@ -46,52 +78,128 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
       const categoryMatch = extractCategory(normalizedText);
       
       if (categoryMatch) {
-        return {
+        const response = {
           intent: "show_menu",
           category: categoryMatch,
           message: `Here are our ${categoryMatch} options.`
         };
+        
+        // Add bot response to conversation history
+        await storage.addMessageToConversation({
+          conversationId: conversation.id,
+          text: response.message,
+          isFromUser: false
+        });
+        
+        return response;
       }
       
-      return {
+      const response = {
         intent: "show_menu",
         message: "Here's our menu. Please select a category."
       };
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: response.message,
+        isFromUser: false
+      });
+      
+      return response;
     }
     
     // Check for order viewing requests
     if (isViewOrderRequest(normalizedText)) {
-      return {
+      const response = {
         intent: "view_order",
         message: "Here is your current order."
       };
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: response.message,
+        isFromUser: false
+      });
+      
+      return response;
     }
     
     // Check for checkout requests
     if (isCheckoutRequest(normalizedText)) {
-      return {
+      const response = {
         intent: "checkout",
         message: "Let's proceed to checkout."
       };
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: response.message,
+        isFromUser: false
+      });
+      
+      return response;
     }
     
     // Check for item ordering
     const orderMatch = extractOrderItem(normalizedText);
     
     if (orderMatch) {
-      return {
+      const response = {
         intent: "order_item",
         item: orderMatch.item,
         specialInstructions: orderMatch.specialInstructions,
         message: `I'll add ${orderMatch.item} to your order${orderMatch.specialInstructions ? ` with the note: ${orderMatch.specialInstructions}` : ''}.`
       };
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: response.message,
+        isFromUser: false
+      });
+      
+      return response;
     }
     
-    // Default response for unrecognized input
-    return {
-      intent: "unknown",
-      message: "I'm not sure what you're looking for. Would you like to see our menu or place an order?"
-    };
+    // For other inputs, use AI recommendations
+    try {
+      // Use the OpenAI to process the natural language and get food recommendations
+      const aiResponse = await getRecommendations(text, telegramUserId);
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: aiResponse.responseMessage,
+        isFromUser: false
+      });
+      
+      return {
+        intent: "recommendation",
+        message: aiResponse.responseMessage,
+        recommendations: aiResponse.recommendations,
+        followUpQuestions: aiResponse.followUpQuestions
+      };
+    } catch (aiError) {
+      log(`Error getting AI recommendations: ${aiError}`, 'nlp-service-error');
+      
+      // Default response for unrecognized input if AI fails
+      const fallbackResponse = {
+        intent: "unknown",
+        message: "I'm not sure what you're looking for. Would you like to see our menu or place an order?"
+      };
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: fallbackResponse.message,
+        isFromUser: false
+      });
+      
+      return fallbackResponse;
+    }
   } catch (error) {
     log(`Error processing natural language: ${error}`, 'nlp-service-error');
     return {
