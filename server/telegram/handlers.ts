@@ -6,6 +6,20 @@ import { createOrder, addItemToOrder, removeItemFromOrder, clearOrder } from '..
 import { processPayment } from '../services/payment';
 import { log } from '../vite';
 
+// Helper function to check for potential typos in dietary preferences
+function containsDietaryPreference(text: string, type: string): boolean {
+  // Check for common typos and variant spellings
+  const dietaryPatterns: Record<string, RegExp> = {
+    keto: /(keto|ketogenic|low carb|low-carb|law carb|lo carb|lo-carb|no carb|carb free|low calorie|lo cal)/i,
+    vegan: /(vegan|plant[- ]based|no animal|100% plant|dairy[- ]free and meat[- ]free|veggies only)/i,
+    vegetarian: /(vegetarian|veggie|no meat|meatless|meat[- ]free)/i,
+    gluten_free: /(gluten[- ]free|no gluten|gluten[- ]less|celiac|no wheat)/i,
+    halal: /(halal|muslim friendly|muslim[- ]friendly|islamic dietary|islam food)/i
+  };
+
+  return !!dietaryPatterns[type]?.test(text);
+}
+
 // Handle incoming messages from users
 export async function handleIncomingMessage(bot: TelegramBot, msg: TelegramBot.Message) {
   if (!msg.text) return;
@@ -138,50 +152,85 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       break;
       
     case 'menu_item':
-      if (params[0]) {
-        const menuItemId = parseInt(params[0]);
-        log(`Processing menu item selection with ID: ${menuItemId}`, 'telegram-callback');
-        
-        const menuItem = await storage.getMenuItemById(menuItemId);
-        
-        if (!menuItem) {
-          await bot.sendMessage(chatId, "Sorry, this item is not available.");
-          return;
-        }
-        
-        // Get or create an order for the user
-        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
-        let orderId: number;
-        
-        if (activeOrder) {
-          orderId = activeOrder.id;
-        } else {
-          const newOrder = await createOrder(telegramUser.id);
-          orderId = newOrder.id;
-        }
-        
-        // Add the item to the order
-        await addItemToOrder(orderId, menuItemId);
-        
-        // Provide a confirmation
-        await bot.sendMessage(
-          chatId,
-          `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
-          {
-            parse_mode: 'Markdown',
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: "View My Order", callback_data: "view_order" }],
-                [{ text: "Add More Items", callback_data: "menu" }],
-                [{ text: "Checkout", callback_data: "checkout" }]
-              ]
+      try {
+        if (params[0]) {
+          const menuItemId = parseInt(params[0]);
+          log(`Processing menu item selection with ID: ${menuItemId}`, 'telegram-callback');
+          
+          const menuItem = await storage.getMenuItemById(menuItemId);
+          
+          if (!menuItem) {
+            await bot.sendMessage(chatId, "Sorry, this item is not available.");
+            return;
+          }
+          
+          log(`Found menu item: ${menuItem.name}, Price: ${menuItem.price}`, 'telegram-callback');
+          
+          // Get or create an order for the user
+          const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+          let orderId: number;
+          
+          if (activeOrder) {
+            orderId = activeOrder.id;
+            log(`Using existing order with ID: ${orderId}`, 'telegram-callback');
+          } else {
+            // Create a new order with explicit totalAmount to avoid validation errors
+            log(`Creating new order for user ${telegramUser.id}`, 'telegram-callback');
+            try {
+              const newOrder = await storage.createOrder({
+                telegramUserId: telegramUser.id,
+                status: "pending",
+                totalAmount: "0.00",
+                deliveryFee: "0.00",
+                isDelivery: true,
+                paymentMethod: "cash",
+                paymentStatus: "pending"
+              });
+              orderId = newOrder.id;
+              log(`Successfully created new order with ID: ${orderId}`, 'telegram-callback');
+            } catch (createOrderError) {
+              log(`Error creating order directly: ${createOrderError}`, 'telegram-error');
+              throw new Error(`Failed to create order: ${createOrderError}`);
             }
           }
-        );
-      } else {
+          
+          // Add the item to the order
+          log(`Adding menu item ${menuItemId} to order ${orderId}`, 'telegram-callback');
+          try {
+            await addItemToOrder(orderId, menuItemId);
+            log(`Successfully added item to order`, 'telegram-callback');
+          } catch (addItemError) {
+            log(`Error adding item to order: ${addItemError}`, 'telegram-error');
+            throw new Error(`Failed to add item to order: ${addItemError}`);
+          }
+          
+          // Provide a confirmation
+          await bot.sendMessage(
+            chatId,
+            `Perfect choice! I've added *${menuItem.name}* to your order. Would you like anything else?`,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "View My Order", callback_data: "view_order" }],
+                  [{ text: "Add More Items", callback_data: "menu" }],
+                  [{ text: "Checkout", callback_data: "checkout" }]
+                ]
+              }
+            }
+          );
+        } else {
+          await bot.sendMessage(
+            chatId,
+            "Sorry, I couldn't find that menu item. Let me show you our menu categories instead.",
+            createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
+          );
+        }
+      } catch (error) {
+        log(`Error handling menu_item callback: ${error}`, 'telegram-error');
         await bot.sendMessage(
           chatId,
-          "Sorry, I couldn't find that menu item. Let me show you our menu categories instead.",
+          "Sorry, I encountered an error adding that item to your order. Let's try something else.",
           createInlineKeyboard([[{ text: "Show Menu", callback_data: "menu" }]])
         );
       }
@@ -592,8 +641,10 @@ async function processNaturalLanguageInput(
       }
     }
     
-    // Direct handling of dietary preferences without going to NLP service for common requests
-    if (/(keto|ketogenic|low carb|low-carb|law carb|lo carb|lo-carb|no carb|carb free)/i.test(msg.text!)) {
+    // Continuing with message processing...
+    
+    // Check for dietary preferences with typo tolerance
+    if (containsDietaryPreference(msg.text!, 'keto')) {
       // Directly handle keto requests with typo tolerance
       log(`Directly handling keto dietary preference for message: "${msg.text}"`, 'telegram-nlp');
       await bot.sendMessage(
@@ -611,8 +662,8 @@ async function processNaturalLanguageInput(
       return;
     }
     
-    if (/(vegan|plant based|no animal)/i.test(msg.text!)) {
-      // Directly handle vegan requests
+    if (containsDietaryPreference(msg.text!, 'vegan')) {
+      // Directly handle vegan requests with typo tolerance
       log(`Directly handling vegan dietary preference for message: "${msg.text}"`, 'telegram-nlp');
       await bot.sendMessage(
         msg.chat.id,
