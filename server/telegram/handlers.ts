@@ -424,6 +424,12 @@ async function processNaturalLanguageInput(
     // Record the start time for performance tracking
     const startTime = Date.now();
     
+    // Quick check if this is a dietary preference query for enhanced detection
+    const text = msg.text?.toLowerCase() || "";
+    if (/keto|diet|vegetarian|vegan|gluten|halal/.test(text)) {
+      log(`Detected potential dietary preference keywords in: "${text}"`, 'telegram-nlp-debug');
+    }
+    
     // Check if it's a very short response to a previous question (like "yes", "no", "mild", "spicy")
     const isShortResponse = msg.text && msg.text.trim().split(/\s+/).length <= 3;
     const lastBotMessage = await storage.getLastBotMessage(conversation.id);
@@ -532,6 +538,44 @@ async function processNaturalLanguageInput(
           return; // We've handled this response specifically
         }
       }
+    }
+    
+    // Direct handling of dietary preferences without going to NLP service for common requests
+    if (/(keto|ketogenic|low carb|low-carb)/i.test(msg.text!)) {
+      // Directly handle keto requests
+      log(`Directly handling keto dietary preference for message: "${msg.text}"`, 'telegram-nlp');
+      await bot.sendMessage(
+        msg.chat.id,
+        "For keto-friendly options, I'd recommend our Chicken Shawarma Salad or Beef Kafta with extra vegetables instead of rice. These options are high in protein and lower in carbs. Would you like to try one of these?"
+      );
+      await bot.sendMessage(
+        msg.chat.id,
+        "Our Chicken Shawarma Salad features marinated chicken with fresh vegetables and no pita bread, making it a perfect low-carb option. Would you like to add that to your order?",
+        createInlineKeyboard([
+          [{ text: "Add Chicken Shawarma Salad", callback_data: "menu_item:23" }],
+          [{ text: "See More Options", callback_data: "special_request:keto" }]
+        ])
+      );
+      return;
+    }
+    
+    if (/(vegan|plant based|no animal)/i.test(msg.text!)) {
+      // Directly handle vegan requests
+      log(`Directly handling vegan dietary preference for message: "${msg.text}"`, 'telegram-nlp');
+      await bot.sendMessage(
+        msg.chat.id,
+        "For vegan options, I'd recommend our Falafel Wrap or Vegetarian Platter. Our falafel is made from a blend of chickpeas and herbs - 100% plant-based and delicious!"
+      );
+      await bot.sendMessage(
+        msg.chat.id,
+        "The Vegetarian Platter includes hummus, tabbouleh, grape leaves, and falafel - all completely vegan. Would you like to add that to your order?",
+        createInlineKeyboard([
+          [{ text: "Add Vegetarian Platter", callback_data: "menu_item:15" }],
+          [{ text: "Add Falafel Wrap", callback_data: "menu_item:3" }],
+          [{ text: "See More Options", callback_data: "special_request:vegan" }]
+        ])
+      );
+      return;
     }
     
     // Process the natural language using OpenAI
