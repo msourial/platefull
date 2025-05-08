@@ -98,6 +98,22 @@ export const storage = {
       }
     });
   },
+  
+  findMenuItemsByPartialName: async (partialName: string) => {
+    // Search for menu items that contain the partial name in their name or description
+    return await db.query.menuItems.findMany({
+      where: and(
+        eq(schema.menuItems.isAvailable, true),
+        or(
+          like(schema.menuItems.name, `%${partialName}%`),
+          like(schema.menuItems.description, `%${partialName}%`)
+        )
+      ),
+      with: {
+        category: true
+      }
+    });
+  },
 
   // Telegram User methods
   getTelegramUserByTelegramId: async (telegramId: string) => {

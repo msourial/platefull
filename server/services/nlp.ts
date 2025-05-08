@@ -473,9 +473,33 @@ function extractOrderItem(text: string): { item: string, specialInstructions?: s
       'salad': 'Fattoush'
     };
     
-    // Check for direct match
+    // Instead of using direct mapping, let's find all menu items that match
+    // This will enable us to handle multiple options for a single word like "beef"
+    
+    // First check if there is a direct mapping for clarity
     if (singleWord in directFoodMappings) {
       log(`Found direct mapping for "${singleWord}" to "${directFoodMappings[singleWord]}"`, 'nlp-service-debug');
+      
+      // Instead of returning immediately, we'll use the direct mapping as a suggestion
+      // but we'll still need to check if there are multiple options for this item
+      const potentialMatches = storage.findMenuItemsByPartialName(singleWord);
+      
+      // If we've found multiple options, we'll handle this as a special case
+      if (potentialMatches && potentialMatches.length > 1) {
+        log(`Found ${potentialMatches.length} potential matches for "${singleWord}"`, 'nlp-service-debug');
+        
+        // We'll handle this case in the calling function
+        return {
+          item: 'multiple-options',
+          specialInstructions: JSON.stringify(potentialMatches.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price
+          })))
+        };
+      }
+      
+      // If we only have one match or no matches, return the direct mapping
       return {
         item: directFoodMappings[singleWord]
       };
