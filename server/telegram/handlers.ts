@@ -1924,19 +1924,19 @@ async function suggestDrinks(
   }
   
   // Create a message with emojis
-  const message = "Would you like to add a refreshing drink to your order? 🥤";
+  const message = "Would you like to add a refreshing drink to your order? 🥤🧊 Stay hydrated!";
   
   // Create keyboard with drink options
   const keyboard = popularDrinks.map(drink => [
     { 
-      text: `${drink.name} - $${parseFloat(drink.price.toString()).toFixed(2)}`, 
+      text: `🥤 ${drink.name} - $${parseFloat(drink.price.toString()).toFixed(2)}`, 
       callback_data: `add_item:${drink.id}` 
     }
   ]);
   
   // Add options to skip
-  keyboard.push([{ text: "No drinks, thanks", callback_data: "no_drinks" }]);
-  keyboard.push([{ text: "See all drinks", callback_data: `category:${drinksCategory.id}` }]);
+  keyboard.push([{ text: "👋 No drinks, thanks", callback_data: "no_drinks" }]);
+  keyboard.push([{ text: "🔍 See all drinks", callback_data: `category:${drinksCategory.id}` }]);
   
   await bot.sendMessage(
     chatId,
@@ -1989,19 +1989,19 @@ async function suggestDesserts(
   }
   
   // Create a message with emojis
-  const message = "Would you like to complete your meal with a sweet dessert? 🍰";
+  const message = "Would you like to complete your meal with a sweet dessert? 🍰 The perfect way to end your meal! 🍮";
   
   // Create keyboard with dessert options
   const keyboard = popularDesserts.map(dessert => [
     { 
-      text: `${dessert.name} - $${parseFloat(dessert.price.toString()).toFixed(2)}`, 
+      text: `🍰 ${dessert.name} - $${parseFloat(dessert.price.toString()).toFixed(2)}`, 
       callback_data: `add_item:${dessert.id}` 
     }
   ]);
   
   // Add options to skip
-  keyboard.push([{ text: "No dessert, thanks", callback_data: "no_dessert" }]);
-  keyboard.push([{ text: "See all desserts", callback_data: `category:${dessertsCategory.id}` }]);
+  keyboard.push([{ text: "👋 No dessert, thanks", callback_data: "no_dessert" }]);
+  keyboard.push([{ text: "🔍 See all desserts", callback_data: `category:${dessertsCategory.id}` }]);
   
   await bot.sendMessage(
     chatId,
@@ -2054,10 +2054,10 @@ async function promptDeliveryOptions(
 ) {
   await bot.sendMessage(
     chatId,
-    "Please select your preferred delivery method:",
+    "Please select your preferred delivery method: 🚚",
     createInlineKeyboard([
-      [{ text: "Delivery (+$2.00)", callback_data: "delivery_method:delivery" }],
-      [{ text: "Pickup (No fee)", callback_data: "delivery_method:pickup" }]
+      [{ text: "🚚 Delivery (+$2.00)", callback_data: "delivery_method:delivery" }],
+      [{ text: "🏪 Pickup (No fee)", callback_data: "delivery_method:pickup" }]
     ])
   );
   
@@ -2186,10 +2186,10 @@ async function promptPaymentOptions(
 ) {
   await bot.sendMessage(
     chatId,
-    "Please select your payment method:",
+    "Please select your payment method: 💳",
     createInlineKeyboard([
-      [{ text: "Coinbase (Cryptocurrency)", callback_data: "payment_method:crypto" }],
-      [{ text: "Cash on Delivery/Pickup", callback_data: "payment_method:cash" }]
+      [{ text: "💰 Coinbase (Cryptocurrency)", callback_data: "payment_method:crypto" }],
+      [{ text: "💵 Cash on Delivery/Pickup", callback_data: "payment_method:cash" }]
     ])
   );
   
@@ -2322,10 +2322,10 @@ async function processPaymentSelection(
   } else {
     await bot.sendMessage(
       msg.chat.id,
-      "I didn't understand your payment selection. Please choose from the options below:",
+      "I didn't understand your payment selection. Please choose from the options below: 💳",
       createInlineKeyboard([
-        [{ text: "Coinbase (Cryptocurrency)", callback_data: "payment_method:crypto" }],
-        [{ text: "Cash on Delivery/Pickup", callback_data: "payment_method:cash" }]
+        [{ text: "💰 Coinbase (Cryptocurrency)", callback_data: "payment_method:crypto" }],
+        [{ text: "💵 Cash on Delivery/Pickup", callback_data: "payment_method:cash" }]
       ])
     );
   }
