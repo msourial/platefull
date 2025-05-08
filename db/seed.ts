@@ -152,6 +152,14 @@ async function seed() {
         categoryId: categoriesMap.get("Salads"),
         isAvailable: true
       },
+      {
+        name: "Chicken Shawarma Salad",
+        description: "Fresh mixed greens topped with marinated chicken shawarma, tomatoes, cucumbers, and our signature dressing. Perfect for keto and low-carb diets.",
+        price: "11.99",
+        imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=600,format=auto,quality=50/media/photos/c1b14867-73e0-404a-a638-2668ef3ee476-retina-large.jpg",
+        categoryId: categoriesMap.get("Salads"),
+        isAvailable: true
+      },
       
       // Sides
       {
@@ -317,6 +325,18 @@ async function seed() {
         name: "Side Options",
         choices: ["Rice", "Fries", "Half Rice & Half Fries"],
         isRequired: true
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Chicken Shawarma Salad"),
+        name: "Dressing Options",
+        choices: ["Olive Oil & Lemon", "Tahini Dressing", "Garlic Dressing", "No Dressing"],
+        isRequired: true
+      },
+      {
+        menuItemId: menuItemsNameMap.get("Chicken Shawarma Salad"),
+        name: "Extra Toppings",
+        choices: ["Extra Chicken", "Extra Vegetables", "Add Feta Cheese", "Add Olives"],
+        isRequired: false
       }
     ];
 
