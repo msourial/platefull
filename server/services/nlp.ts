@@ -145,7 +145,7 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
     }
     
     // Check for item ordering
-    const orderMatch = await extractOrderItem(normalizedText);
+    const orderMatch = await extractOrderItem(normalizedText, conversation.id);
     
     if (orderMatch) {
       const response = {
@@ -501,7 +501,7 @@ function extractCategory(text: string): string | undefined {
   return undefined;
 }
 
-async function extractOrderItem(text: string): Promise<{ item: string, specialInstructions?: string } | undefined> {
+async function extractOrderItem(text: string, conversationId?: number): Promise<{ item: string, specialInstructions?: string } | undefined> {
   // Check common patterns for ordering food first
   const orderPatterns = [
     /can i (?:have|get|order) (?:a|an|some|the)? (.+?)(?:\s+with\s+(.+))?$/i,  // Can I have a chicken shawarma with garlic sauce
@@ -527,6 +527,91 @@ async function extractOrderItem(text: string): Promise<{ item: string, specialIn
   if (words.length === 1) {
     const singleWord = words[0].toLowerCase();
     log(`Processing single-word food item: "${singleWord}"`, 'nlp-service-debug');
+    
+    // If we have a conversation ID, check the context of previous messages
+    if (conversationId) {
+      // Get the last bot message to check for context
+      const lastBotMessage = await storage.getLastBotMessage(conversationId);
+      
+      if (lastBotMessage) {
+        log(`Checking last bot message for context: "${lastBotMessage.text}"`, 'nlp-service-debug');
+        
+        // Look for specific menu items mentioned in the bot's last message
+        // First, check for recommendations involving beef or chicken options
+        if (/chicken shawarma salad|beef (shawarma|kafta)|beef.*or.*chicken/i.test(lastBotMessage.text)) {
+          if (singleWord === 'beef' || singleWord === 'beef shawarma') {
+            if (/salad/i.test(lastBotMessage.text)) {
+              log(`Context suggests 'Beef Shawarma Salad' from previous message`, 'nlp-service-debug');
+              return { item: 'Beef Shawarma Salad' };
+            } else if (/platter/i.test(lastBotMessage.text)) {
+              log(`Context suggests 'Beef Shawarma Platter' from previous message`, 'nlp-service-debug');
+              return { item: 'Beef Shawarma Platter' };
+            } else if (/pita|wrap/i.test(lastBotMessage.text)) {
+              log(`Context suggests 'Beef Shawarma Pita' from previous message`, 'nlp-service-debug');
+              return { item: 'Beef Shawarma Pita' };
+            } else if (/kafta/i.test(lastBotMessage.text)) {
+              log(`Context suggests 'Beef Kafta' from previous message`, 'nlp-service-debug');
+              return { item: 'Beef Kafta' };
+            }
+          } else if (singleWord === 'chicken' || singleWord === 'chicken shawarma') {
+            if (/salad/i.test(lastBotMessage.text)) {
+              log(`Context suggests 'Chicken Shawarma Salad' from previous message`, 'nlp-service-debug');
+              return { item: 'Chicken Shawarma Salad' };
+            } else if (/platter/i.test(lastBotMessage.text)) {
+              log(`Context suggests 'Chicken Shawarma Platter' from previous message`, 'nlp-service-debug');
+              return { item: 'Chicken Shawarma Platter' };
+            } else if (/pita|wrap/i.test(lastBotMessage.text)) {
+              log(`Context suggests 'Chicken Shawarma Pita' from previous message`, 'nlp-service-debug');
+              return { item: 'Chicken Shawarma Pita' };
+            }
+          }
+        }
+        
+        // Check for customization options (rice or fries questions)
+        if (/rice or fries|would you like rice|side options/i.test(lastBotMessage.text)) {
+          if (singleWord === 'rice') {
+            log(`Context suggests 'Rice' as a customization option`, 'nlp-service-debug');
+            return { item: 'Rice' };
+          } else if (singleWord === 'fries' || singleWord === 'french fries') {
+            log(`Context suggests 'Fries' as a customization option`, 'nlp-service-debug');
+            return { item: 'Fries' };
+          }
+        }
+        
+        // Check for drink options
+        if (/drink|beverage|would you like something to drink/i.test(lastBotMessage.text)) {
+          if (singleWord === 'coke' || singleWord === 'pepsi' || singleWord === 'cola') {
+            log(`Context suggests soft drink from beverage question`, 'nlp-service-debug');
+            return { item: 'Coke' };
+          } else if (singleWord === 'water') {
+            return { item: 'Water' };
+          } else if (singleWord === 'juice') {
+            return { item: 'Orange Juice' };
+          }
+        }
+        
+        // Check for dessert options
+        if (/dessert|sweet|would you like dessert/i.test(lastBotMessage.text)) {
+          if (singleWord === 'baklava') {
+            return { item: 'Baklava' };
+          } else if (singleWord === 'cake') {
+            return { item: 'Dessert Cake' };
+          }
+        }
+        
+        // Extract all capitalized menu items from the last message as potential matches
+        const menuItemMatches = lastBotMessage.text.match(/([A-Z][a-z]+ )+/g) || [];
+        for (const menuItem of menuItemMatches) {
+          const cleanedItem = menuItem.trim();
+          
+          // If the single word appears in one of these items, use that context
+          if (cleanedItem.toLowerCase().includes(singleWord)) {
+            log(`Found context match in capitalized item: "${cleanedItem}"`, 'nlp-service-debug');
+            return { item: cleanedItem };
+          }
+        }
+      }
+    }
     
     // Basic food mapping for single words - using exact menu item names from database
     const directFoodMappings: Record<string, string> = {
