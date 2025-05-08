@@ -537,7 +537,26 @@ async function extractOrderItem(text: string, conversationId?: number): Promise<
         log(`Checking last bot message for context: "${lastBotMessage.text}"`, 'nlp-service-debug');
         
         // Look for specific menu items mentioned in the bot's last message
-        // First, check for recommendations involving beef or chicken options
+        // First, check for kafta-specific messages which is a common issue
+        if (singleWord === 'kafta') {
+          log(`Detected 'kafta' as single word response`, 'nlp-service-debug');
+          if (/beef kafta|kafta/i.test(lastBotMessage.text)) {
+            log(`Context suggests 'Beef Kafta' from previous message mentioning kafta`, 'nlp-service-debug');
+            return { item: 'Beef Kafta' };
+          } else if (/platter/i.test(lastBotMessage.text)) {
+            log(`Context suggests 'Kafta Platter' from previous message with platter context`, 'nlp-service-debug');
+            return { item: 'Kafta Platter' };
+          } else if (/pita|wrap/i.test(lastBotMessage.text)) {
+            log(`Context suggests 'Kafta Pita' from previous message with pita context`, 'nlp-service-debug');
+            return { item: 'Kafta Pita' };
+          } else {
+            // Default kafta item when no specific context
+            log(`No specific context for kafta, using default 'Beef Kafta'`, 'nlp-service-debug');
+            return { item: 'Beef Kafta' };
+          }
+        }
+        
+        // Check for recommendations involving beef or chicken options
         if (/chicken shawarma salad|beef (shawarma|kafta)|beef.*or.*chicken/i.test(lastBotMessage.text)) {
           if (singleWord === 'beef' || singleWord === 'beef shawarma') {
             if (/salad/i.test(lastBotMessage.text)) {
