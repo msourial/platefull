@@ -424,6 +424,43 @@ async function processNaturalLanguageInput(
     // Record the start time for performance tracking
     const startTime = Date.now();
     
+    // Check if it's a very short response to a previous question (like "yes", "no", "mild", "spicy")
+    const isShortResponse = msg.text && msg.text.trim().split(/\s+/).length <= 2;
+    const lastBotMessage = await storage.getLastBotMessage(conversation.id);
+    
+    // If it's a short response to a previous question, enhance the context for better understanding
+    if (isShortResponse && lastBotMessage) {
+      // Combine the last bot message with the user's response to provide context for the NLP
+      log(`Adding context from previous conversation for short response: "${msg.text}"`, 'telegram-nlp');
+      
+      // Modify short answers like "yes" to be more specific based on the last bot question
+      if (/would you like your falafel spicy or mild/i.test(lastBotMessage.text)) {
+        if (/spicy|hot/i.test(msg.text!)) {
+          await bot.sendMessage(
+            msg.chat.id,
+            "Perfect! I'll make sure your falafel is prepared with our special spicy seasoning. It has a bit of kick but won't overwhelm the delicious herb flavors."
+          );
+        } else if (/mild|not spicy|no spice/i.test(msg.text!)) {
+          await bot.sendMessage(
+            msg.chat.id,
+            "Great choice! Our mild falafel lets you enjoy the delicate blend of herbs and chickpeas without any heat. It's our most popular preparation."
+          );
+        }
+      } else if (/any allergies|allergies/i.test(lastBotMessage.text)) {
+        if (/yes|i do|have|nut|sesame|dairy|gluten/i.test(msg.text!)) {
+          await bot.sendMessage(
+            msg.chat.id,
+            "Thanks for letting me know about your allergies. I'll make sure to note that in your order so our kitchen can prepare your food safely."
+          );
+        } else if (/no|don't have|none/i.test(msg.text!)) {
+          await bot.sendMessage(
+            msg.chat.id,
+            "Great! No allergies to worry about. You'll be able to enjoy the full flavors of our authentic Lebanese cuisine."
+          );
+        }
+      }
+    }
+    
     // Process the natural language using OpenAI
     const response = await processNaturalLanguage(msg.text!, telegramUser.telegramId);
     

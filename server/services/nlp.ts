@@ -173,6 +173,7 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
         const response = {
           intent: "dietary_recommendation",
           message: `For ${dietaryPreference} options, I'd recommend our Falafel Wrap or Falafel Platter. Falafel is made from chickpeas and herbs, making it a delicious ${dietaryPreference} option. Would you like me to add one of these to your order? Or would you prefer to see more ${dietaryPreference} options?`,
+          dietaryPreference: dietaryPreference,
           recommendations: [
             {
               name: "Falafel Wrap",
@@ -194,6 +195,117 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
             "Would you like your falafel spicy or mild?",
             "Do you have any allergies I should know about?",
             "Would you prefer a wrap or a full platter with sides?"
+          ]
+        };
+        
+        // Add bot response to conversation history
+        await storage.addMessageToConversation({
+          conversationId: conversation.id,
+          text: response.message,
+          isFromUser: false
+        });
+        
+        return response;
+      } else if (dietaryPreference === 'gluten-free') {
+        const response = {
+          intent: "dietary_recommendation",
+          dietaryPreference: dietaryPreference,
+          message: `For gluten-free options, I'd recommend our Chicken Shawarma Platter without pita bread, or our Lebanese Salad with grilled chicken. We can prepare these dishes without any gluten-containing ingredients. Would you like me to add one of these to your order?`,
+          recommendations: [
+            {
+              name: "Chicken Shawarma Platter",
+              category: "Platters",
+              reasons: ["Can be served without pita", "Includes rice, garlic sauce, and salad - all gluten-free"]
+            },
+            {
+              name: "Lebanese Salad",
+              category: "Salads",
+              reasons: ["Fresh mix of vegetables with our house dressing", "Add grilled chicken for a complete gluten-free meal"]
+            },
+            {
+              name: "Hummus with Vegetables",
+              category: "Appetizers",
+              reasons: ["Classic chickpea dip with olive oil", "Served with fresh vegetable crudités instead of pita"]
+            }
+          ],
+          followUpQuestions: [
+            "Do you have any other dietary restrictions besides gluten?",
+            "Would you like us to ensure there's no cross-contamination in the kitchen?",
+            "Would you prefer a meat option or a vegetable-based dish?"
+          ]
+        };
+        
+        // Add bot response to conversation history
+        await storage.addMessageToConversation({
+          conversationId: conversation.id,
+          text: response.message,
+          isFromUser: false
+        });
+        
+        return response;
+      } else if (dietaryPreference === 'halal') {
+        const response = {
+          intent: "dietary_recommendation",
+          dietaryPreference: dietaryPreference,
+          message: `All our meat is 100% halal certified, so you can enjoy any of our meat dishes! Our most popular halal options are the Chicken Shawarma and Beef Kafta. Would you like to try one of these authentic Lebanese specialties?`,
+          recommendations: [
+            {
+              name: "Chicken Shawarma",
+              category: "Pitas & Wraps",
+              reasons: ["100% halal-certified chicken", "Marinated in our special blend of Middle Eastern spices"]
+            },
+            {
+              name: "Beef Kafta",
+              category: "Platters",
+              reasons: ["Halal ground beef mixed with parsley and spices", "Grilled to perfection and served with rice and salad"]
+            },
+            {
+              name: "Mixed Grill Platter",
+              category: "Platters",
+              reasons: ["Sample of our halal grilled meats", "Perfect for trying multiple halal options in one dish"]
+            }
+          ],
+          followUpQuestions: [
+            "Would you prefer chicken, beef, or lamb?",
+            "Do you like your food spicy or mild?",
+            "Would you like that as a wrap or a platter with sides?"
+          ]
+        };
+        
+        // Add bot response to conversation history
+        await storage.addMessageToConversation({
+          conversationId: conversation.id,
+          text: response.message,
+          isFromUser: false
+        });
+        
+        return response;
+      } else if (dietaryPreference === 'keto' || dietaryPreference === 'low-carb') {
+        const response = {
+          intent: "dietary_recommendation",
+          dietaryPreference: dietaryPreference,
+          message: `For ${dietaryPreference} options, I'd recommend our Chicken Shawarma Salad or Beef Kafta with extra vegetables instead of rice. These options are high in protein and lower in carbs. Would you like to try one of these?`,
+          recommendations: [
+            {
+              name: "Chicken Shawarma Salad",
+              category: "Salads",
+              reasons: ["High protein, low carb option", "Fresh vegetables with marinated chicken, no pita"]
+            },
+            {
+              name: "Beef Kafta",
+              category: "Platters",
+              reasons: ["Request extra vegetable sides instead of rice", "Protein-rich grilled beef with low-carb vegetable options"]
+            },
+            {
+              name: "Garlic Sauce Chicken",
+              category: "Platters",
+              reasons: ["Flavorful chicken with our famous garlic sauce", "Ask for double vegetable portion instead of rice or fries"]
+            }
+          ],
+          followUpQuestions: [
+            "Would you like to substitute the rice for extra salad?",
+            "Do you have any specific vegetables you prefer?",
+            "How strictly are you following your low-carb diet?"
           ]
         };
         

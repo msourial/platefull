@@ -209,6 +209,20 @@ export const storage = {
     });
   },
   
+  getLastBotMessage: async (conversationId: number) => {
+    // Find the most recent message from the bot (not from user)
+    const messages = await db.query.conversationMessages.findMany({
+      where: and(
+        eq(schema.conversationMessages.conversationId, conversationId),
+        eq(schema.conversationMessages.isFromUser, false)
+      ),
+      orderBy: desc(schema.conversationMessages.timestamp),
+      limit: 1
+    });
+    
+    return messages.length > 0 ? messages[0] : null;
+  },
+  
   // Get user preferences from their order history and conversations
   getUserPreferences: async (telegramUserId: number) => {
     try {
