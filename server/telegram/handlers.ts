@@ -1098,9 +1098,9 @@ async function sendWelcomeMessage(bot: TelegramBot, chatId: number) {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: "Browse Menu Categories", callback_data: "menu" }],
-          [{ text: "I Know What I Want", callback_data: "direct_order" }],
-          [{ text: "Recommend Something", callback_data: "special_request" }]
+          [{ text: "📋 Browse Menu Categories", callback_data: "menu" }],
+          [{ text: "🍽️ I Know What I Want", callback_data: "direct_order" }],
+          [{ text: "🔍 Recommend Something", callback_data: "special_request" }]
         ]
       }
     }

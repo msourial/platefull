@@ -90,7 +90,7 @@ export const sendMenuCategories = async (chatId: number) => {
     
     await getBot().sendMessage(
       chatId,
-      "Here's our menu. Please select a category to see the items:",
+      "📜 Here's our menu. Please select a category to see the items:",
       createInlineKeyboard(keyboardButtons)
     );
   } catch (error) {
@@ -115,7 +115,7 @@ export const sendMenuItems = async (chatId: number, categoryId: number) => {
     
     await getBot().sendMessage(
       chatId,
-      `Here are our ${category.name.toLowerCase()} options. Tap on any item to add it to your order:`
+      `🍽️ Here are our ${category.name.toLowerCase()} options. Tap on any item to add it to your order:`
     );
     
     for (const item of menuItems) {
@@ -123,7 +123,7 @@ export const sendMenuItems = async (chatId: number, categoryId: number) => {
       
       const keyboard = [
         [{
-          text: `Add to order - $${parseFloat(item.price.toString()).toFixed(2)}`,
+          text: `🛒 Add to order - $${parseFloat(item.price.toString()).toFixed(2)}`,
           callback_data: `add_item:${item.id}`
         }]
       ];
@@ -142,8 +142,8 @@ export const sendMenuItems = async (chatId: number, categoryId: number) => {
       chatId,
       "Would you like to see another category or proceed with your order?",
       createInlineKeyboard([
-        [{ text: "Back to Categories", callback_data: "menu" }],
-        [{ text: "View Current Order", callback_data: "view_order" }]
+        [{ text: "📋 Back to Categories", callback_data: "menu" }],
+        [{ text: "🛒 View Current Order", callback_data: "view_order" }]
       ])
     );
   } catch (error) {
@@ -160,7 +160,7 @@ export const sendOrderSummary = async (chatId: number, orderId: number) => {
     if (!order || order.orderItems.length === 0) {
       await getBot().sendMessage(
         chatId,
-        "Your order is empty. Please add some items to your order first."
+        "🛒 Your order is empty. Please add some items to your order first."
       );
       return;
     }
@@ -204,11 +204,11 @@ export const sendOrderSummary = async (chatId: number, orderId: number) => {
     
     const keyboard = [
       [
-        { text: "Add More Items", callback_data: "menu" },
-        { text: "Checkout", callback_data: "checkout" }
+        { text: "➕ Add More Items", callback_data: "menu" },
+        { text: "✅ Checkout", callback_data: "checkout" }
       ],
       [
-        { text: "Empty Cart", callback_data: "empty_cart" }
+        { text: "🗑️ Empty Cart", callback_data: "empty_cart" }
       ]
     ];
     
