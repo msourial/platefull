@@ -425,7 +425,7 @@ async function processNaturalLanguageInput(
     const startTime = Date.now();
     
     // Check if it's a very short response to a previous question (like "yes", "no", "mild", "spicy")
-    const isShortResponse = msg.text && msg.text.trim().split(/\s+/).length <= 2;
+    const isShortResponse = msg.text && msg.text.trim().split(/\s+/).length <= 3;
     const lastBotMessage = await storage.getLastBotMessage(conversation.id);
     
     // If it's a short response to a previous question, enhance the context for better understanding
@@ -434,29 +434,102 @@ async function processNaturalLanguageInput(
       log(`Adding context from previous conversation for short response: "${msg.text}"`, 'telegram-nlp');
       
       // Modify short answers like "yes" to be more specific based on the last bot question
-      if (/would you like your falafel spicy or mild/i.test(lastBotMessage.text)) {
+      if (/would you like your falafel spicy or mild/i.test(lastBotMessage.text) || 
+          /spicy or mild/i.test(lastBotMessage.text)) {
         if (/spicy|hot/i.test(msg.text!)) {
           await bot.sendMessage(
             msg.chat.id,
-            "Perfect! I'll make sure your falafel is prepared with our special spicy seasoning. It has a bit of kick but won't overwhelm the delicious herb flavors."
+            "Perfect! I'll make sure your order is prepared with our special spicy seasoning. It has a nice kick but won't overwhelm the delicious flavors. Would you like to add garlic sauce on the side for an extra burst of flavor?"
           );
+          // Save this preference in the conversation context for future recommendations
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              spicePreference: 'spicy'
+            }
+          });
         } else if (/mild|not spicy|no spice/i.test(msg.text!)) {
           await bot.sendMessage(
             msg.chat.id,
-            "Great choice! Our mild falafel lets you enjoy the delicate blend of herbs and chickpeas without any heat. It's our most popular preparation."
+            "Great choice! Our mild preparation lets you enjoy the delicate blend of herbs and authentic Lebanese flavors without any heat. It's our most popular preparation. Would you like to add our famous garlic sauce on the side?"
           );
+          // Save this preference in the conversation context for future recommendations
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              spicePreference: 'mild'
+            }
+          });
         }
-      } else if (/any allergies|allergies/i.test(lastBotMessage.text)) {
+        return; // We've handled this response specifically
+      } 
+      
+      if (/any allergies|allergies/i.test(lastBotMessage.text)) {
         if (/yes|i do|have|nut|sesame|dairy|gluten/i.test(msg.text!)) {
+          // Extract the specific allergy if mentioned
+          let allergyType = 'food';
+          if (/nut|peanut|tree nut/i.test(msg.text!)) allergyType = 'nuts';
+          if (/sesame|tahini/i.test(msg.text!)) allergyType = 'sesame';
+          if (/dairy|milk|cheese/i.test(msg.text!)) allergyType = 'dairy';
+          if (/gluten|wheat/i.test(msg.text!)) allergyType = 'gluten';
+          
           await bot.sendMessage(
             msg.chat.id,
-            "Thanks for letting me know about your allergies. I'll make sure to note that in your order so our kitchen can prepare your food safely."
+            `Thanks for letting me know about your ${allergyType} allergy. I'll make sure to note that in your order so our kitchen can prepare your food safely. We take allergies very seriously at Boustan.`
           );
+          
+          // Save this allergy info in the conversation context for future recommendations
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              allergyInfo: allergyType
+            }
+          });
+          return; // We've handled this response specifically
         } else if (/no|don't have|none/i.test(msg.text!)) {
           await bot.sendMessage(
             msg.chat.id,
-            "Great! No allergies to worry about. You'll be able to enjoy the full flavors of our authentic Lebanese cuisine."
+            "Great! No allergies to worry about. You'll be able to enjoy the full flavors of our authentic Lebanese cuisine. Would you like me to recommend our most popular dish?"
           );
+          // Save this preference in the conversation context for future recommendations
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              allergyInfo: 'none'
+            }
+          });
+          return; // We've handled this response specifically
+        }
+      }
+      
+      if (/prefer a wrap or a full platter/i.test(lastBotMessage.text) ||
+          /wrap or platter/i.test(lastBotMessage.text)) {
+        if (/wrap|pita/i.test(msg.text!)) {
+          await bot.sendMessage(
+            msg.chat.id,
+            "Perfect! Our wraps are a great choice for a satisfying meal on the go. They're made with fresh, warm pita bread and packed with delicious fillings. Would you like to add a side of fresh-cut fries or a drink to complete your meal?"
+          );
+          // Save this preference in the conversation context
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              servicePreference: 'wrap'
+            }
+          });
+          return; // We've handled this response specifically
+        } else if (/platter|plate|full meal/i.test(msg.text!)) {
+          await bot.sendMessage(
+            msg.chat.id,
+            "Excellent choice! Our platters are perfect for a complete meal experience. They come with your choice of protein, rice or fries, salad, and our house-made garlic sauce. Is there a specific type of platter you'd like to try?"
+          );
+          // Save this preference in the conversation context
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...conversation.context,
+              servicePreference: 'platter'
+            }
+          });
+          return; // We've handled this response specifically
         }
       }
     }

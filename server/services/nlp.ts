@@ -648,6 +648,13 @@ function extractDietaryPreference(text: string): string {
     return 'nut-free';
   }
   
+  // Keto and low-carb related keywords
+  if (normalizedText.includes('keto') || normalizedText.includes('ketogenic') || 
+      normalizedText.includes('low carb') || normalizedText.includes('low-carb') ||
+      normalizedText.includes('no carbs') || normalizedText.includes('carb-free')) {
+    return 'keto';
+  }
+  
   // Spice level preferences
   if (normalizedText.includes('spicy') || normalizedText.includes('hot')) {
     return 'spicy';
