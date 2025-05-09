@@ -2,6 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { storage } from '../storage';
 import { sendMenuCategories, sendMenuItems, sendOrderSummary, createInlineKeyboard } from './bot';
 import { processNaturalLanguage } from '../services/nlp';
+import { checkForReorderSuggestion, getPersonalizedRecommendations } from '../services/orderHistory';
 import { createOrder, addItemToOrder, removeItemFromOrder, clearOrder } from '../services/order';
 import { processPayment } from '../services/payment';
 import { log } from '../vite';
@@ -1141,17 +1142,77 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
 // Helper functions
 
 async function sendWelcomeMessage(bot: TelegramBot, chatId: number) {
+  // Get the user from chat ID
+  const telegramId = chatId.toString();
+  const telegramUser = await storage.getTelegramUserByTelegramId(telegramId);
+  
+  // Default welcome message
+  let welcomeText = "👋 *Welcome to Boustan Lebanese Restaurant!* I'm your AI assistant and I'm here to help you order delicious authentic Lebanese food.\n\nI can recommend dishes based on your preferences - just tell me what you're in the mood for! For example, you can say *\"I want something spicy\"* or *\"What's good for vegetarians?\"*";
+  
+  // Prepare the keyboard buttons (default)
+  let keyboardButtons = [
+    [{ text: "📋 Browse Menu Categories", callback_data: "menu" }],
+    [{ text: "🍽️ I Know What I Want", callback_data: "direct_order" }],
+    [{ text: "🔍 Recommend Something", callback_data: "special_request" }]
+  ];
+  
+  // If we have a user, check their order history for personalization
+  if (telegramUser) {
+    try {
+      // Check if there are any reorder suggestions
+      const reorderSuggestion = await checkForReorderSuggestion(telegramUser.id);
+      
+      // Get personalized recommendations
+      const personalRecommendations = await getPersonalizedRecommendations(telegramUser.id);
+      
+      // If user has order history, add personalized welcome back message and suggestions
+      if (reorderSuggestion.hasPreviousOrders || personalRecommendations.recommendations.length > 0) {
+        // Add welcome back message
+        welcomeText = `👋 *Welcome back to Boustan, ${telegramUser.firstName || 'there'}!*\n\n`;
+        
+        // If there's a recent order we can suggest to reorder
+        if (reorderSuggestion.hasPreviousOrders && reorderSuggestion.recentItems.length > 0) {
+          welcomeText += `Last time you ordered:\n`;
+          
+          // Show up to 3 recent items
+          const recentItems = reorderSuggestion.recentItems.slice(0, 3);
+          recentItems.forEach((item, index) => {
+            welcomeText += `· ${item.name} ${item.price ? `($${item.price})` : ''}\n`;
+          });
+          
+          // Add option to reorder previous items
+          welcomeText += `\nWould you like to reorder your favorites or try something new?`;
+          
+          // Add reorder button
+          keyboardButtons.unshift([{ text: "🔄 Reorder My Favorites", callback_data: "reorder_favorites" }]);
+        } 
+        // If we have personalized recommendations based on order history
+        else if (personalRecommendations.recommendations.length > 0) {
+          welcomeText += `Based on your previous orders, you might enjoy:\n`;
+          
+          // Show up to 3 recommendations
+          const topRecommendations = personalRecommendations.recommendations.slice(0, 3);
+          topRecommendations.forEach((rec, index) => {
+            welcomeText += `· ${rec.name} ${rec.reason ? `- ${rec.reason}` : ''}\n`;
+          });
+          
+          welcomeText += `\nWhat would you like to try today?`;
+        }
+      }
+    } catch (error) {
+      log(`Error getting personalized welcome message: ${error}`, 'telegram');
+      // Fall back to default welcome message
+    }
+  }
+  
+  // Send the welcome message with appropriate buttons
   await bot.sendMessage(
     chatId,
-    "👋 *Welcome to Boustan Lebanese Restaurant!* I'm your AI assistant and I'm here to help you order delicious authentic Lebanese food.\n\nI can recommend dishes based on your preferences - just tell me what you're in the mood for! For example, you can say *\"I want something spicy\"* or *\"What's good for vegetarians?\"*",
+    welcomeText,
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: "📋 Browse Menu Categories", callback_data: "menu" }],
-          [{ text: "🍽️ I Know What I Want", callback_data: "direct_order" }],
-          [{ text: "🔍 Recommend Something", callback_data: "special_request" }]
-        ]
+        inline_keyboard: keyboardButtons
       }
     }
   );
