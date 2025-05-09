@@ -413,11 +413,61 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       break;
       
     case 'special_request':
-      await bot.sendMessage(
-        chatId,
-        "*Tell me what you're in the mood for and I'll recommend the perfect Boustan dishes for you!*\n\nYou can say things like:\n- \"What's good for vegetarians?\"\n- \"I want something spicy\"\n- \"I'm really hungry and need a filling meal\"\n- \"What's popular at Boustan?\"\n- \"I need a quick lunch option\"",
-        { parse_mode: 'Markdown' }
-      );
+      // Check if we have a specific dietary preference parameter (e.g., special_request:keto)
+      if (params.length > 0 && params[0]) {
+        const dietaryPreference = params[0];
+        log(`Processing special request for dietary preference: ${dietaryPreference}`, 'telegram-callback');
+        
+        // Get personalized recommendations based on the dietary preference
+        const response = await processNaturalLanguage(`I'm looking for ${dietaryPreference} options`, telegramUser.telegramId);
+        
+        if (response.recommendations && response.recommendations.length > 0) {
+          // Display recommendations with item details and "Add to Order" buttons
+          await bot.sendMessage(
+            chatId,
+            `Here are our best ${dietaryPreference} friendly options:`,
+            { parse_mode: 'Markdown' }
+          );
+          
+          // Find the menu items matching the recommendations
+          for (const recommendation of response.recommendations) {
+            // Search for the menu item by name
+            const menuItems = await storage.getMenuItemsByName(recommendation.name);
+            if (menuItems.length > 0) {
+              const item = menuItems[0];
+              
+              // Send item details with "Add to Order" button
+              await bot.sendMessage(
+                chatId,
+                `*${item.name}* - $${parseFloat(item.price.toString()).toFixed(2)}\n${item.description || ''}\n\n*Why it's great:* ${recommendation.reasons.join(', ')}`,
+                {
+                  parse_mode: 'Markdown',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: `Add to Order`, callback_data: `add_item:${item.id}` }]
+                    ]
+                  }
+                }
+              );
+            }
+          }
+        } else {
+          // Fallback if no specific recommendations
+          await bot.sendMessage(
+            chatId,
+            `I couldn't find specific ${dietaryPreference} recommendations. Please let me know more about what you're looking for.`,
+            { parse_mode: 'Markdown' }
+          );
+        }
+      } else {
+        // Default special request without parameter
+        await bot.sendMessage(
+          chatId,
+          "*Tell me what you're in the mood for and I'll recommend the perfect Boustan dishes for you!*\n\nYou can say things like:\n- \"What's good for vegetarians?\"\n- \"I want something spicy\"\n- \"I'm really hungry and need a filling meal\"\n- \"What's popular at Boustan?\"\n- \"I need a quick lunch option\"",
+          { parse_mode: 'Markdown' }
+        );
+      }
+      
       await storage.updateConversation(conversation.id, { state: 'item_selection' });
       break;
       
@@ -1250,7 +1300,7 @@ async function processNaturalLanguageInput(
         msg.chat.id,
         "Our Chicken Shawarma Salad features marinated chicken with fresh vegetables and no pita bread, making it a perfect low-carb option. Would you like to add that to your order?",
         createInlineKeyboard([
-          [{ text: "Add Chicken Shawarma Salad", callback_data: "menu_item:23" }],
+          [{ text: "Add Chicken Shawarma Salad", callback_data: "menu_item:26" }],
           [{ text: "See More Options", callback_data: "special_request:keto" }]
         ])
       );
@@ -1306,7 +1356,7 @@ async function processNaturalLanguageInput(
         msg.chat.id,
         "Our Chicken Shawarma Salad is a great gluten-free choice, featuring marinated chicken with fresh vegetables. Would you like to add that to your order?",
         createInlineKeyboard([
-          [{ text: "Add Chicken Shawarma Salad", callback_data: "menu_item:23" }],
+          [{ text: "Add Chicken Shawarma Salad", callback_data: "menu_item:26" }],
           [{ text: "Add Beef Shawarma Salad", callback_data: "menu_item:24" }],
           [{ text: "See More Options", callback_data: "special_request:gluten_free" }]
         ])
