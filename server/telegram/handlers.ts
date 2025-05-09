@@ -1449,6 +1449,7 @@ async function sendWelcomeMessage(bot: TelegramBot, chatId: number) {
   // Prepare the keyboard buttons (default)
   let keyboardButtons = [
     [{ text: "📋 Browse Menu Categories", callback_data: "menu" }],
+    [{ text: "👤 Personalized For You", callback_data: "personal_recommendations" }],
     [{ text: "🍽️ I Know What I Want", callback_data: "direct_order" }],
     [{ text: "🔍 Recommend Something", callback_data: "special_request" }]
   ];

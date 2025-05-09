@@ -239,6 +239,10 @@ export async function getPersonalizedRecommendations(telegramUserId: number): Pr
     // Analyze order history
     const analysis = await analyzeOrderHistory(telegramUserId);
     
+    // Get user information
+    const telegramUser = await storage.getTelegramUserById(telegramUserId);
+    const userFirstName = telegramUser?.firstName || "there";
+    
     // Initialize recommendations array
     const recommendations: {
       menuItemId: number;
@@ -260,7 +264,7 @@ export async function getPersonalizedRecommendations(telegramUserId: number): Pr
       return {
         recommendations: recommendedItems,
         suggestedCustomizations: {},
-        message: "Based on our most popular items, you might enjoy these dishes:"
+        message: `Hello ${userFirstName}! Here are some of our most popular dishes you might enjoy:`
       };
     }
     
@@ -279,16 +283,139 @@ export async function getPersonalizedRecommendations(telegramUserId: number): Pr
       });
     }
     
+    // Get all menu items for additional recommendations
+    const allMenuItems = await storage.getMenuItems();
+    
+    // Get conversation context to check for recently mentioned preferences
+    let recentConversation = null;
+    try {
+      const conversation = await storage.getConversationByTelegramUserId(telegramUserId);
+      if (conversation) recentConversation = conversation;
+    } catch (error) {
+      log(`Couldn't get conversation for user ${telegramUserId}: ${error}`, 'order-history');
+    }
+    
+    // Check for dietary preferences in conversation context
+    let dietaryPreference = null;
+    let spicePreference = null;
+    
+    if (recentConversation?.context) {
+      // Extract preferences from conversation context
+      try {
+        const context = recentConversation.context as Record<string, any>;
+        
+        if (context.allergyInfo) {
+          dietaryPreference = context.allergyInfo;
+        }
+        
+        if (context.spicePreference) {
+          spicePreference = context.spicePreference;
+        }
+      } catch (error) {
+        log(`Error parsing conversation context: ${error}`, 'order-history');
+      }
+    }
+    
+    // If we have enough menu items, let's add some recommendations based on recent conversation context
+    if (allMenuItems.length > 0 && (dietaryPreference || spicePreference) && recommendations.length < 4) {
+      // Find potential matches based on conversation context
+      const contextMatches = allMenuItems.filter(item => {
+        const itemName = item.name.toLowerCase();
+        const itemDesc = (item.description || '').toLowerCase();
+        
+        // Skip items that are already recommended
+        if (recommendations.some(rec => rec.menuItemId === item.id)) {
+          return false;
+        }
+        
+        // Match based on dietary preference
+        if (dietaryPreference) {
+          if (dietaryPreference === 'vegetarian' || dietaryPreference === 'vegan') {
+            return (itemName.includes('vegetarian') || 
+                   itemName.includes('vegan') || 
+                   itemName.includes('falafel') || 
+                   itemName.includes('hummus') ||
+                   itemDesc.includes('vegetarian') || 
+                   itemDesc.includes('plant-based') ||
+                   itemDesc.includes('vegan'));
+          }
+          
+          if (dietaryPreference === 'gluten') {
+            return (itemName.includes('gluten-free') || 
+                   itemDesc.includes('gluten-free') ||
+                   itemName.includes('bowl') && !itemName.includes('pita') ||
+                   itemDesc.includes('without bread'));
+          }
+          
+          if (dietaryPreference === 'dairy') {
+            return (itemDesc.includes('dairy-free') || 
+                   itemDesc.includes('no dairy') ||
+                   !(itemName.includes('cheese') || 
+                     itemName.includes('yogurt') || 
+                     itemDesc.includes('cheese') || 
+                     itemDesc.includes('yogurt')));
+          }
+        }
+        
+        // Match based on spice preference
+        if (spicePreference) {
+          if (spicePreference === 'spicy') {
+            return (itemName.includes('spicy') || 
+                   itemDesc.includes('spicy') ||
+                   itemName.includes('hot') ||
+                   itemDesc.includes('hot'));
+          }
+          
+          if (spicePreference === 'mild') {
+            return (itemName.includes('mild') || 
+                   itemDesc.includes('mild') ||
+                   !(itemName.includes('spicy') || 
+                     itemDesc.includes('spicy') ||
+                     itemName.includes('hot') ||
+                     itemDesc.includes('hot')));
+          }
+        }
+        
+        return false;
+      });
+      
+      // Add context-based recommendation if found
+      if (contextMatches.length > 0) {
+        const randomIndex = Math.floor(Math.random() * Math.min(3, contextMatches.length));
+        const recommendedItem = contextMatches[randomIndex];
+        
+        let reasonText = "Based on your preferences";
+        if (dietaryPreference) {
+          if (dietaryPreference === 'vegetarian' || dietaryPreference === 'vegan') {
+            reasonText = "Vegetarian option you might enjoy";
+          } else if (dietaryPreference === 'gluten') {
+            reasonText = "Gluten-free option";
+          } else if (dietaryPreference === 'dairy') {
+            reasonText = "Dairy-free option";
+          }
+        } else if (spicePreference) {
+          reasonText = spicePreference === 'spicy' ? "Spicy option you might enjoy" : "Mild option, not too spicy";
+        }
+        
+        recommendations.push({
+          menuItemId: recommendedItem.id,
+          name: recommendedItem.name,
+          reason: reasonText
+        });
+      }
+    }
+    
     // Suggest items from favorite categories but not specifically ordered before
     const favoriteCategories = analysis.frequentCategories;
-    if (favoriteCategories.length > 0) {
+    if (favoriteCategories.length > 0 && recommendations.length < 4) {
       // Get items from favorite category
       const categoryId = favoriteCategories[0].categoryId;
       const categoryItems = await storage.getMenuItemsForCategory(categoryId);
       
-      // Filter out items already in favorites
+      // Filter out items already in favorites or already recommended
       const newCategoryItems = categoryItems.filter(item => 
-        !analysis.favoriteItems.some(fav => fav.menuItemId === item.id)
+        !analysis.favoriteItems.some(fav => fav.menuItemId === item.id) &&
+        !recommendations.some(rec => rec.menuItemId === item.id)
       );
       
       if (newCategoryItems.length > 0) {
@@ -305,7 +432,7 @@ export async function getPersonalizedRecommendations(telegramUserId: number): Pr
     }
     
     // If we don't have enough recommendations yet, add a popular item they haven't tried
-    if (recommendations.length < 2) {
+    if (recommendations.length < 3) {
       const popularItems = await storage.getPopularMenuItems(5);
       
       // Filter out items already recommended or in favorites
@@ -323,9 +450,50 @@ export async function getPersonalizedRecommendations(telegramUserId: number): Pr
       }
     }
     
+    // Add size-appropriate recommendations based on typical meal size
+    if (recommendations.length < 3 && analysis.averageOrderSize) {
+      const mealSizeRecommendation = allMenuItems.find(item => {
+        // Skip items that are already recommended
+        if (recommendations.some(rec => rec.menuItemId === item.id)) {
+          return false;
+        }
+        
+        const itemName = item.name.toLowerCase();
+        const itemDesc = (item.description || '').toLowerCase();
+        
+        if (analysis.averageOrderSize <= 1.5) {
+          // For small orders, recommend wraps or sandwiches
+          return itemName.includes('wrap') || 
+                 itemName.includes('sandwich') || 
+                 itemDesc.includes('quick meal') ||
+                 itemDesc.includes('on the go');
+        } else if (analysis.averageOrderSize >= 3) {
+          // For large orders, recommend family platters or combos
+          return itemName.includes('platter') || 
+                 itemName.includes('combo') || 
+                 itemName.includes('family') ||
+                 itemDesc.includes('sharing') ||
+                 itemDesc.includes('feast');
+        }
+        
+        return false;
+      });
+      
+      if (mealSizeRecommendation) {
+        const sizeReason = analysis.averageOrderSize <= 1.5 
+          ? "Perfect for a quick meal" 
+          : "Great for a hearty meal";
+          
+        recommendations.push({
+          menuItemId: mealSizeRecommendation.id,
+          name: mealSizeRecommendation.name,
+          reason: sizeReason
+        });
+      }
+    }
+    
     // Generate a personalized message based on analysis
     let message: string;
-    const userFirstName = (await storage.getTelegramUserById(telegramUserId))?.firstName || "there";
     
     if (analysis.hasMealPatterns) {
       message = `Welcome back, ${userFirstName}! Based on your previous orders, here are some recommendations just for you:`;
