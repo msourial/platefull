@@ -1,6 +1,6 @@
 import { db } from "@db";
 import * as schema from "@shared/schema";
-import { eq, and, desc, asc, like, isNull, or } from "drizzle-orm";
+import { eq, and, desc, asc, like, isNull, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -44,8 +44,29 @@ export const storage = {
   // Get popular categories based on order history
   getPopularCategories: async (limit: number = 3) => {
     try {
-      // This is a simplified implementation since we don't have actual order analytics yet
-      // In a real implementation, we would count orders by category and return the most ordered
+      // This implementation returns categories ordered by popularity based on order items
+      // Count orders by category and return the most ordered
+      const categoryStats = await db.execute(
+        `SELECT c.id, c.name, COUNT(oi.id) as order_count
+         FROM categories c
+         JOIN menu_items mi ON mi.category_id = c.id
+         JOIN order_items oi ON oi.menu_item_id = mi.id
+         JOIN orders o ON o.id = oi.order_id
+         WHERE c.is_active = true
+         GROUP BY c.id, c.name
+         ORDER BY order_count DESC
+         LIMIT ${limit}`
+      );
+      
+      if (categoryStats.rows && categoryStats.rows.length > 0) {
+        return categoryStats.rows.map(row => ({
+          id: row.id,
+          name: row.name,
+          orderCount: row.order_count
+        }));
+      }
+      
+      // Fallback to default ordering if no stats available
       return await db.query.categories.findMany({
         where: eq(schema.categories.isActive, true),
         orderBy: asc(schema.categories.displayOrder),
@@ -60,8 +81,51 @@ export const storage = {
   // Get popular menu items based on order history
   getPopularItems: async (limit: number = 5) => {
     try {
-      // This is a simplified implementation
-      // In a real implementation, we would count orders by item and return the most ordered
+      // This implementation returns items ordered by popularity based on order data
+      const itemStats = await db.execute(
+        `SELECT mi.id, mi.name, mi.price, mi.description, mi.category_id, mi.image_url, COUNT(oi.id) as order_count
+         FROM menu_items mi
+         JOIN order_items oi ON oi.menu_item_id = mi.id
+         JOIN orders o ON o.id = oi.order_id
+         WHERE mi.is_available = true
+         GROUP BY mi.id, mi.name, mi.price, mi.description, mi.category_id, mi.image_url
+         ORDER BY order_count DESC
+         LIMIT ${limit}`
+      );
+      
+      if (itemStats.rows && itemStats.rows.length > 0) {
+        const categoryMap = new Map();
+        
+        // Get all relevant categories
+        const categoryIds: number[] = [];
+        itemStats.rows.forEach(row => {
+          if (row.category_id && !categoryIds.includes(row.category_id)) {
+            categoryIds.push(row.category_id);
+          }
+        });
+        
+        const categories = await db.query.categories.findMany({
+          where: inArray(schema.categories.id, categoryIds)
+        });
+        
+        // Create a map for quick lookup
+        categories.forEach(cat => categoryMap.set(cat.id, cat));
+        
+        // Format with appropriate structure
+        return itemStats.rows.map(row => ({
+          id: row.id,
+          name: row.name,
+          price: row.price,
+          description: row.description,
+          imageUrl: row.image_url,
+          categoryId: row.category_id,
+          isAvailable: true,
+          category: categoryMap.get(row.category_id),
+          orderCount: row.order_count
+        }));
+      }
+      
+      // Fallback to default ordering if no stats available
       return await db.query.menuItems.findMany({
         where: eq(schema.menuItems.isAvailable, true),
         orderBy: desc(schema.menuItems.id), // Using ID as temporary proxy for popularity
@@ -74,6 +138,32 @@ export const storage = {
       console.error("Error getting popular items:", error);
       return [];
     }
+  },
+  
+  // Alias for getPopularItems with different name for clarity
+  getPopularMenuItems: async (limit: number = 5) => {
+    return await storage.getPopularItems(limit);
+  },
+  
+  // Get menu items for a specific category
+  getMenuItemsForCategory: async (categoryId: number) => {
+    return await db.query.menuItems.findMany({
+      where: and(
+        eq(schema.menuItems.categoryId, categoryId),
+        eq(schema.menuItems.isAvailable, true)
+      ),
+      with: {
+        category: true,
+        customizationOptions: true
+      }
+    });
+  },
+  
+  // Get a telegram user by ID
+  getTelegramUserById: async (id: number) => {
+    return await db.query.telegramUsers.findFirst({
+      where: eq(schema.telegramUsers.id, id)
+    });
   },
 
   getMenuItemById: async (id: number) => {
