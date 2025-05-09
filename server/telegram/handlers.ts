@@ -299,6 +299,88 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       );
       await storage.updateConversation(conversation.id, { state: 'item_selection' });
       break;
+      
+    case 'reorder_favorites':
+      // Handle reordering favorites from previous orders
+      try {
+        const reorderSuggestion = await checkForReorderSuggestion(telegramUser.id);
+        
+        if (reorderSuggestion.shouldSuggestReorder && reorderSuggestion.lastOrder && reorderSuggestion.lastOrder.items.length > 0) {
+          // Create a new order for the user
+          const newOrder = await storage.createOrder({
+            telegramUserId: telegramUser.id,
+            status: "pending",
+            totalAmount: "0.00",
+            deliveryFee: "0.00",
+            isDelivery: true,
+            paymentMethod: "cash",
+            paymentStatus: "pending"
+          });
+          
+          // Add items from last order to the new order
+          const buttons = [];
+          let messageText = "🔄 I've created a new order with your previous items:\n\n";
+          let totalAmount = 0;
+          
+          // Add items from the last order
+          for (const item of reorderSuggestion.lastOrder.items) {
+            try {
+              // Get the menu item from the database
+              const menuItem = await storage.getMenuItemById(item.menuItemId);
+              
+              if (menuItem) {
+                // Add the item to the order
+                await addItemToOrder(newOrder.id, item.menuItemId);
+                
+                // Add the item to the message
+                messageText += `· ${item.name} ${menuItem.price ? `($${menuItem.price})` : ''}\n`;
+                
+                // Calculate running total
+                if (menuItem.price) {
+                  const price = parseFloat(menuItem.price.toString());
+                  if (!isNaN(price)) {
+                    totalAmount += price;
+                  }
+                }
+              }
+            } catch (error) {
+              log(`Error adding item ${item.menuItemId} to reorder: ${error}`, 'telegram-error');
+            }
+          }
+          
+          messageText += `\nYour subtotal is $${totalAmount.toFixed(2)}. Would you like to proceed to checkout or add more items?`;
+          
+          buttons.push([{ text: "🛒 View Complete Order", callback_data: "view_order" }]);
+          buttons.push([{ text: "➕ Add More Items", callback_data: "menu" }]);
+          buttons.push([{ text: "💳 Proceed to Checkout", callback_data: "checkout" }]);
+          
+          await bot.sendMessage(
+            chatId,
+            messageText,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: buttons
+              }
+            }
+          );
+        } else {
+          // No recent orders found, show standard menu
+          await bot.sendMessage(
+            chatId,
+            "I couldn't find any recent orders for you. Let me show you our menu instead.",
+            createInlineKeyboard([[{ text: "View Menu", callback_data: "menu" }]])
+          );
+        }
+      } catch (error) {
+        log(`Error processing reorder_favorites: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "Sorry, I encountered an error processing your previous orders. Let me show you our menu instead.",
+          createInlineKeyboard([[{ text: "View Menu", callback_data: "menu" }]])
+        );
+      }
+      break;
     
     case 'customize':
       try {
@@ -413,6 +495,207 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       }
       break;
       
+    case 'personal_recommendations':
+      // Display personalized recommendations based on order history
+      try {
+        log(`Fetching personalized recommendations for user ${telegramUser.id}`, 'telegram-callback');
+        
+        // Get personalized recommendations
+        const recommendations = await getPersonalizedRecommendations(telegramUser.id);
+        
+        if (recommendations.recommendations.length > 0) {
+          // First, send a personalized greeting
+          await bot.sendMessage(
+            chatId,
+            recommendations.message || "Here are some items you might enjoy based on your order history:",
+            { parse_mode: 'Markdown' }
+          );
+          
+          // Display each recommendation
+          for (const recommendation of recommendations.recommendations) {
+            // Get full menu item details
+            const menuItem = await storage.getMenuItemById(recommendation.menuItemId);
+            
+            if (menuItem) {
+              // Format price for display
+              const priceDisplay = menuItem.price 
+                ? `$${parseFloat(menuItem.price.toString()).toFixed(2)}` 
+                : '';
+              
+              // Send item details with "Add to Order" button
+              await bot.sendMessage(
+                chatId,
+                `*${menuItem.name}* - ${priceDisplay}\n${menuItem.description || ''}\n\n*Why we recommend it:* ${recommendation.reason}`,
+                {
+                  parse_mode: 'Markdown',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: `Add to Order`, callback_data: `add_item:${menuItem.id}` }],
+                      [{ text: `Customize`, callback_data: `customize:${menuItem.id}` }]
+                    ]
+                  }
+                }
+              );
+              
+              // Add a slight delay between messages to avoid flooding
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          }
+          
+          // Offer additional actions after recommendations
+          await bot.sendMessage(
+            chatId,
+            "Would you like to see more options or proceed with your order?",
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "📋 Browse Full Menu", callback_data: "menu" }],
+                  [{ text: "🛒 View Current Order", callback_data: "view_order" }]
+                ]
+              }
+            }
+          );
+        } else {
+          // No personalized recommendations, suggest popular items instead
+          await bot.sendMessage(
+            chatId,
+            "I don't have enough order history to make personalized recommendations yet. Here are some of our most popular items:",
+            { parse_mode: 'Markdown' }
+          );
+          
+          // Get popular items
+          const popularItems = await storage.getPopularMenuItems(3);
+          
+          // Show popular items
+          for (const item of popularItems) {
+            // Format price for display
+            const priceDisplay = item.price 
+              ? `$${parseFloat(item.price.toString()).toFixed(2)}` 
+              : '';
+            
+            await bot.sendMessage(
+              chatId,
+              `*${item.name}* - ${priceDisplay}\n${item.description || ''}\n\n*Popular choice among our customers*`,
+              {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: `Add to Order`, callback_data: `add_item:${item.id}` }]
+                  ]
+                }
+              }
+            );
+            
+            // Add a slight delay between messages to avoid flooding
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        }
+      } catch (error) {
+        log(`Error handling personal recommendations: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "I encountered an error retrieving your personalized recommendations. Let me show you our popular items instead.",
+          createInlineKeyboard([[{ text: "See Popular Items", callback_data: "popular_items" }]])
+        );
+      }
+      
+      await storage.updateConversation(conversation.id, { state: 'item_selection' });
+      break;
+      
+    case 'popular_items':
+      // Display most popular menu items
+      try {
+        log(`Fetching popular items for user ${telegramUser.id}`, 'telegram-callback');
+        
+        // Send an introduction
+        await bot.sendMessage(
+          chatId,
+          "📈 *Our Most Popular Items* 📈\n\nHere are the customer favorites at Boustan:",
+          { parse_mode: 'Markdown' }
+        );
+        
+        // Get popular items - more than in the recommendations
+        const popularItems = await storage.getPopularMenuItems(5);
+        
+        if (popularItems.length > 0) {
+          // Show popular items
+          for (const item of popularItems) {
+            // Format price for display
+            const priceDisplay = item.price 
+              ? `$${parseFloat(item.price.toString()).toFixed(2)}` 
+              : '';
+            
+            // Get category name for contextual information
+            let categoryName = "";
+            try {
+              const category = await storage.getCategoryById(item.categoryId);
+              if (category) {
+                categoryName = category.name;
+              }
+            } catch (error) {
+              // Just continue if we can't get the category
+            }
+            
+            // Send item with emoji based on category
+            let categoryEmoji = "🍽️";
+            if (categoryName.toLowerCase().includes("wrap")) categoryEmoji = "🌯";
+            if (categoryName.toLowerCase().includes("salad")) categoryEmoji = "🥗";
+            if (categoryName.toLowerCase().includes("platter")) categoryEmoji = "🍛";
+            if (categoryName.toLowerCase().includes("side")) categoryEmoji = "🍟";
+            if (categoryName.toLowerCase().includes("dessert")) categoryEmoji = "🍰";
+            if (categoryName.toLowerCase().includes("drink")) categoryEmoji = "🥤";
+            
+            await bot.sendMessage(
+              chatId,
+              `${categoryEmoji} *${item.name}* - ${priceDisplay}\n${item.description || ''}\n\n${categoryName ? `*Category:* ${categoryName}\n` : ''}*Loved by our customers!* One of our most ordered items.`,
+              {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: `Add to Order`, callback_data: `add_item:${item.id}` }],
+                    [{ text: `Customize`, callback_data: `customize:${item.id}` }]
+                  ]
+                }
+              }
+            );
+            
+            // Add a slight delay between messages to avoid flooding
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        } else {
+          await bot.sendMessage(
+            chatId,
+            "I'm having trouble retrieving our popular items. Would you like to browse our menu instead?",
+            createInlineKeyboard([[{ text: "Browse Menu", callback_data: "menu" }]])
+          );
+        }
+        
+        // After showing popular items, offer some additional actions
+        await bot.sendMessage(
+          chatId,
+          "Would you like to see more options, get personalized recommendations, or proceed with your order?",
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "👤 Personalized Recommendations", callback_data: "personal_recommendations" }],
+                [{ text: "📋 Browse Menu Categories", callback_data: "menu" }],
+                [{ text: "🛒 View Current Order", callback_data: "view_order" }]
+              ]
+            }
+          }
+        );
+      } catch (error) {
+        log(`Error handling popular items: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "I encountered an error retrieving our popular items. Let me show you our menu instead.",
+          createInlineKeyboard([[{ text: "Browse Menu", callback_data: "menu" }]])
+        );
+      }
+      
+      await storage.updateConversation(conversation.id, { state: 'item_selection' });
+      break;
+      
     case 'special_request':
       // Check if we have a specific dietary preference parameter (e.g., special_request:keto)
       if (params.length > 0 && params[0]) {
@@ -461,11 +744,25 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
           );
         }
       } else {
-        // Default special request without parameter
+        // Default special request without parameter - instead of just showing a message,
+        // show a menu of options including personalized recommendations
+        const mainButtons = [
+          [{ text: "👤 Personal Recommendations", callback_data: "personal_recommendations" }],
+          [{ text: "🌱 Vegetarian Options", callback_data: "special_request:vegetarian" }],
+          [{ text: "🥗 Keto/Low-Carb Options", callback_data: "special_request:keto" }],
+          [{ text: "🍽️ Our Most Popular Items", callback_data: "popular_items" }],
+          [{ text: "☪️ Halal Options", callback_data: "special_request:halal" }]
+        ];
+        
         await bot.sendMessage(
           chatId,
-          "*Tell me what you're in the mood for and I'll recommend the perfect Boustan dishes for you!*\n\nYou can say things like:\n- \"What's good for vegetarians?\"\n- \"I want something spicy\"\n- \"I'm really hungry and need a filling meal\"\n- \"What's popular at Boustan?\"\n- \"I need a quick lunch option\"",
-          { parse_mode: 'Markdown' }
+          "*What kind of recommendations would you like?*\n\nI can suggest dishes based on your preferences or dietary needs:",
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: mainButtons
+            }
+          }
         );
       }
       
@@ -1166,18 +1463,20 @@ async function sendWelcomeMessage(bot: TelegramBot, chatId: number) {
       const personalRecommendations = await getPersonalizedRecommendations(telegramUser.id);
       
       // If user has order history, add personalized welcome back message and suggestions
-      if (reorderSuggestion.hasPreviousOrders || personalRecommendations.recommendations.length > 0) {
+      if ((reorderSuggestion.shouldSuggestReorder && reorderSuggestion.lastOrder) || 
+          personalRecommendations.recommendations.length > 0) {
         // Add welcome back message
         welcomeText = `👋 *Welcome back to Boustan, ${telegramUser.firstName || 'there'}!*\n\n`;
         
         // If there's a recent order we can suggest to reorder
-        if (reorderSuggestion.hasPreviousOrders && reorderSuggestion.recentItems.length > 0) {
+        if (reorderSuggestion.shouldSuggestReorder && reorderSuggestion.lastOrder && 
+            reorderSuggestion.lastOrder.items.length > 0) {
           welcomeText += `Last time you ordered:\n`;
           
           // Show up to 3 recent items
-          const recentItems = reorderSuggestion.recentItems.slice(0, 3);
-          recentItems.forEach((item, index) => {
-            welcomeText += `· ${item.name} ${item.price ? `($${item.price})` : ''}\n`;
+          const recentItems = reorderSuggestion.lastOrder.items.slice(0, 3);
+          recentItems.forEach(item => {
+            welcomeText += `· ${item.name}\n`;
           });
           
           // Add option to reorder previous items
