@@ -5,6 +5,169 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export const storage = {
+  // Instagram User Methods
+  getInstagramUserByInstagramId: async (instagramId: string) => {
+    return await db.query.instagramUsers.findFirst({
+      where: eq(schema.instagramUsers.instagramId, instagramId)
+    });
+  },
+  
+  getInstagramUserById: async (id: number) => {
+    return await db.query.instagramUsers.findFirst({
+      where: eq(schema.instagramUsers.id, id)
+    });
+  },
+  
+  createInstagramUser: async (instagramUser: schema.InsertInstagramUser) => {
+    try {
+      schema.insertInstagramUserSchema.parse(instagramUser);
+      const [newUser] = await db.insert(schema.instagramUsers).values(instagramUser).returning();
+      return newUser;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(fromZodError(error).message);
+      }
+      throw error;
+    }
+  },
+  
+  updateInstagramUser: async (id: number, data: Partial<schema.InsertInstagramUser>) => {
+    const [updatedUser] = await db.update(schema.instagramUsers)
+      .set({ ...data, lastInteraction: new Date() })
+      .where(eq(schema.instagramUsers.id, id))
+      .returning();
+    return updatedUser;
+  },
+  
+  // Instagram Conversation Methods
+  getInstagramConversationByUserId: async (instagramUserId: number) => {
+    return await db.query.instagramConversations.findFirst({
+      where: eq(schema.instagramConversations.instagramUserId, instagramUserId),
+      with: {
+        messages: {
+          orderBy: asc(schema.instagramConversationMessages.timestamp)
+        }
+      }
+    });
+  },
+  
+  createInstagramConversation: async (conversation: schema.InsertInstagramConversation) => {
+    try {
+      schema.insertInstagramConversationSchema.parse(conversation);
+      const [newConversation] = await db.insert(schema.instagramConversations).values(conversation).returning();
+      return newConversation;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(fromZodError(error).message);
+      }
+      throw error;
+    }
+  },
+  
+  updateInstagramConversation: async (id: number, data: Partial<schema.InsertInstagramConversation>) => {
+    const [updatedConversation] = await db.update(schema.instagramConversations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.instagramConversations.id, id))
+      .returning();
+    return updatedConversation;
+  },
+  
+  // Instagram Conversation Message Methods
+  createInstagramConversationMessage: async (conversationId: number, messageData: { text: string, isFromUser: boolean, timestamp?: Date }) => {
+    try {
+      const message: schema.InsertInstagramConversationMessage = {
+        conversationId,
+        text: messageData.text,
+        isFromUser: messageData.isFromUser,
+        timestamp: messageData.timestamp || new Date()
+      };
+      
+      schema.insertInstagramConversationMessageSchema.parse(message);
+      const [newMessage] = await db.insert(schema.instagramConversationMessages).values(message).returning();
+      
+      // Update the conversation's lastMessageId
+      await db.update(schema.instagramConversations)
+        .set({ lastMessageId: newMessage.id, updatedAt: new Date() })
+        .where(eq(schema.instagramConversations.id, conversationId));
+        
+      return newMessage;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(fromZodError(error).message);
+      }
+      console.error("Error creating Instagram conversation message:", error);
+      throw error;
+    }
+  },
+  
+  getInstagramConversationMessages: async (conversationId: number, limit: number = 0) => {
+    let query = db.query.instagramConversationMessages.findMany({
+      where: eq(schema.instagramConversationMessages.conversationId, conversationId),
+      orderBy: asc(schema.instagramConversationMessages.timestamp)
+    });
+    
+    if (limit > 0) {
+      query = db.query.instagramConversationMessages.findMany({
+        where: eq(schema.instagramConversationMessages.conversationId, conversationId),
+        orderBy: desc(schema.instagramConversationMessages.timestamp),
+        limit
+      });
+      
+      const messages = await query;
+      return messages.reverse(); // Reverse to get chronological order
+    }
+    
+    return await query;
+  },
+  
+  getLastInstagramBotMessage: async (conversationId: number) => {
+    // Find the most recent message from the bot (not from user)
+    const messages = await db.query.instagramConversationMessages.findMany({
+      where: and(
+        eq(schema.instagramConversationMessages.conversationId, conversationId),
+        eq(schema.instagramConversationMessages.isFromUser, false)
+      ),
+      orderBy: desc(schema.instagramConversationMessages.timestamp),
+      limit: 1
+    });
+    
+    return messages.length > 0 ? messages[0] : null;
+  },
+  
+  // Order methods for Instagram users
+  getActiveOrderByInstagramUserId: async (instagramUserId: number) => {
+    // Add the ordersWithInstagramUser relationship first
+    return await db.query.orders.findFirst({
+      where: and(
+        eq(schema.orders.instagramUserId, instagramUserId),
+        or(
+          eq(schema.orders.status, "pending"),
+          eq(schema.orders.status, "processing")
+        )
+      ),
+      with: {
+        orderItems: {
+          with: {
+            menuItem: true
+          }
+        }
+      }
+    });
+  },
+  
+  getOrdersByInstagramUserId: async (instagramUserId: number) => {
+    return await db.query.orders.findMany({
+      where: eq(schema.orders.instagramUserId, instagramUserId),
+      orderBy: desc(schema.orders.createdAt),
+      with: {
+        orderItems: {
+          with: {
+            menuItem: true
+          }
+        }
+      }
+    });
+  },
   // Category methods
   getCategories: async () => {
     return await db.query.categories.findMany({

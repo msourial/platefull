@@ -94,7 +94,8 @@ export type CustomizationOption = typeof customizationOptions.$inferSelect;
 // Orders table
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
-  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id).notNull(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  instagramUserId: integer("instagram_user_id").references(() => instagramUsers.id),
   status: text("status").notNull().default("pending"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).default("0"),
@@ -229,6 +230,7 @@ export const telegramUsersRelations = relations(telegramUsers, ({ many }) => ({
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   telegramUser: one(telegramUsers, { fields: [orders.telegramUserId], references: [telegramUsers.id] }),
+  instagramUser: one(instagramUsers, { fields: [orders.instagramUserId], references: [instagramUsers.id] }),
   orderItems: many(orderItems),
 }));
 

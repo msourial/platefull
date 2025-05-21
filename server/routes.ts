@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { initBot } from "./telegram/bot";
+import { initInstagramBot, processInstagramWebhook, verifyWebhook } from "./instagram/bot";
 import { getRecentOrders, getOrdersByStatus, updateOrderStatus } from "./services/order";
 import { log } from "./vite";
 
