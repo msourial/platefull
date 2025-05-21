@@ -161,6 +161,52 @@ export const insertConversationMessageSchema = createInsertSchema(conversationMe
 export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
 export type ConversationMessage = typeof conversationMessages.$inferSelect;
 
+// Instagram users table (for customers using Instagram)
+export const instagramUsers = pgTable("instagram_users", {
+  id: serial("id").primaryKey(),
+  instagramId: text("instagram_id").notNull().unique(),
+  username: text("username"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profilePic: text("profile_pic"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastInteraction: timestamp("last_interaction").defaultNow().notNull(),
+});
+
+export const insertInstagramUserSchema = createInsertSchema(instagramUsers, {
+  instagramId: (schema) => schema.min(1, "Instagram ID is required"),
+});
+
+export type InsertInstagramUser = z.infer<typeof insertInstagramUserSchema>;
+export type InstagramUser = typeof instagramUsers.$inferSelect;
+
+// Instagram conversations table
+export const instagramConversations = pgTable("instagram_conversations", {
+  id: serial("id").primaryKey(),
+  instagramUserId: integer("instagram_user_id").references(() => instagramUsers.id).notNull(),
+  state: text("state").notNull().default("initial"),
+  context: json("context").$type<Record<string, any>>().default({}),
+  lastMessageId: integer("last_message_id"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Instagram conversation messages table
+export const instagramConversationMessages = pgTable("instagram_conversation_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => instagramConversations.id).notNull(),
+  text: text("text").notNull(),
+  isFromUser: boolean("is_from_user").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const insertInstagramConversationSchema = createInsertSchema(instagramConversations);
+export type InsertInstagramConversation = z.infer<typeof insertInstagramConversationSchema>;
+export type InstagramConversation = typeof instagramConversations.$inferSelect;
+
+export const insertInstagramConversationMessageSchema = createInsertSchema(instagramConversationMessages);
+export type InsertInstagramConversationMessage = z.infer<typeof insertInstagramConversationMessageSchema>;
+export type InstagramConversationMessage = typeof instagramConversationMessages.$inferSelect;
+
 // Define all relations
 export const categoriesRelations = relations(categories, ({ many }) => ({
   menuItems: many(menuItems),
@@ -198,4 +244,21 @@ export const conversationsRelations = relations(conversations, ({ one, many }) =
 
 export const conversationMessagesRelations = relations(conversationMessages, ({ one }) => ({
   conversation: one(conversations, { fields: [conversationMessages.conversationId], references: [conversations.id] })
+}));
+
+// Instagram user relations
+export const instagramUsersRelations = relations(instagramUsers, ({ many }) => ({
+  instagramConversations: many(instagramConversations),
+  orders: many(orders)
+}));
+
+// Instagram conversation relations
+export const instagramConversationsRelations = relations(instagramConversations, ({ one, many }) => ({
+  instagramUser: one(instagramUsers, { fields: [instagramConversations.instagramUserId], references: [instagramUsers.id] }),
+  messages: many(instagramConversationMessages)
+}));
+
+// Instagram conversation messages relations
+export const instagramConversationMessagesRelations = relations(instagramConversationMessages, ({ one }) => ({
+  conversation: one(instagramConversations, { fields: [instagramConversationMessages.conversationId], references: [instagramConversations.id] })
 }));
