@@ -25,7 +25,7 @@ export async function handleIncomingMessage(senderId: string, message: string) {
     const conversation = await getOrCreateConversation(instagramUser.id);
     
     // Check if this is the first message
-    if (conversation.state === 'new') {
+    if (!conversation || conversation.state === 'new' || conversation.state === 'initial') {
       await sendWelcomeMessage(senderId, instagramUser);
       return;
     }
@@ -91,7 +91,7 @@ async function getOrCreateConversation(instagramUserId: number) {
     
     if (!conversation) {
       // Create new conversation
-      conversation = await storage.createInstagramConversation({
+      const newConversation = await storage.createInstagramConversation({
         instagramUserId,
         state: 'new',
         context: {},
@@ -99,6 +99,17 @@ async function getOrCreateConversation(instagramUserId: number) {
       });
       
       log(`Created new Instagram conversation for user ID ${instagramUserId}`, 'instagram');
+      
+      // Return a properly formatted conversation object
+      return {
+        ...newConversation,
+        messages: []
+      };
+    }
+    
+    // If messages property is missing, add an empty array
+    if (!conversation.messages) {
+      conversation.messages = [];
     }
     
     return conversation;
@@ -283,21 +294,23 @@ async function processWithAnthropic(
     const conversationHistory = await storage.getInstagramConversationMessages(conversation.id, 10);
     
     // Format conversation history for Claude
-    const formattedHistory = [];
+    // We need to create properly typed messages for Anthropic
+    const messages = [];
     
-    // Process conversation messages for Claude's expected format
-    for (const msg of conversationHistory) {
-      formattedHistory.push({
-        role: msg.isFromUser ? 'user' : 'assistant',
-        content: msg.text
-      });
+    // Process previous messages in the conversation
+    if (conversationHistory && conversationHistory.length > 0) {
+      for (const msg of conversationHistory) {
+        messages.push({
+          role: msg.isFromUser ? 'user' as const : 'assistant' as const,
+          content: msg.text
+        });
+      }
     }
     
     // Add the current message if not already in history
-    if (formattedHistory.length === 0 || 
-        formattedHistory[formattedHistory.length - 1].content !== message) {
-      formattedHistory.push({
-        role: 'user',
+    if (messages.length === 0 || messages[messages.length - 1].content !== message) {
+      messages.push({
+        role: 'user' as const,
         content: message
       });
     }
@@ -326,24 +339,24 @@ async function processWithAnthropic(
       Keep responses short and conversational, as if texting with a friend.
       
       Use emojis to make your responses more engaging.`,
-      messages: [
-        ...formattedHistory.map(msg => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content
-        }))
-      ]
+      messages
     });
     
     // Extract the assistant's response
     let aiResponse = "";
     
-    if (response.content && response.content.length > 0) {
+    if (response && response.content && response.content.length > 0) {
       // Process content parts
       for (const content of response.content) {
         if (content.type === 'text') {
           aiResponse += content.text;
         }
       }
+    }
+    
+    // Fallback if no response
+    if (!aiResponse) {
+      aiResponse = "I'm sorry, but I couldn't process your request right now. How can I help you with your order?";
     }
     
     // Send the response
@@ -416,7 +429,7 @@ async function handleConfirmation(
       }
       
       // Add the item to the order
-      await addItemToOrder(order.id, context.pendingItemId, 1, {});
+      await addItemToOrder(order.id, context.pendingItemId, 1, "");
       
       // Send confirmation message
       await sendInstagramMessage(
