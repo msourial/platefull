@@ -10,6 +10,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize the Telegram bot when the server starts
   initBot();
   
+  // Initialize the Instagram bot
+  initInstagramBot();
+  
   // Get all menu categories
   app.get('/api/categories', async (req, res) => {
     try {
@@ -94,6 +97,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error updating order status:', error);
       return res.status(500).json({ error: 'Failed to update order status' });
+    }
+  });
+  
+  // Instagram webhook verification endpoint
+  app.get('/api/instagram/webhook', (req, res) => {
+    try {
+      // Get the query parameters sent by Instagram
+      const mode = req.query['hub.mode'] as string;
+      const token = req.query['hub.verify_token'] as string;
+      const challenge = req.query['hub.challenge'] as string;
+      
+      // Verify the webhook subscription
+      const result = verifyWebhook(mode, token, challenge);
+      
+      if (result.success) {
+        // If verification succeeds, return the challenge
+        log('Instagram webhook verification successful', 'instagram');
+        return res.status(200).send(result.challenge);
+      } else {
+        // If verification fails, return 403 Forbidden
+        log('Instagram webhook verification failed', 'instagram-error');
+        return res.sendStatus(403);
+      }
+    } catch (error) {
+      log(`Error verifying Instagram webhook: ${error}`, 'instagram-error');
+      return res.sendStatus(500);
+    }
+  });
+  
+  // Instagram webhook endpoint to receive messages
+  app.post('/api/instagram/webhook', async (req, res) => {
+    try {
+      // Process the webhook event
+      await processInstagramWebhook(req.body);
+      
+      // Always return a 200 OK to acknowledge receipt
+      return res.status(200).send('EVENT_RECEIVED');
+    } catch (error) {
+      log(`Error processing Instagram webhook: ${error}`, 'instagram-error');
+      
+      // Still return 200 even on error to prevent Instagram from retrying
+      return res.status(200).send('EVENT_RECEIVED');
     }
   });
   

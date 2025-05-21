@@ -3,25 +3,56 @@ import { log } from "../vite";
 
 // Service functions for order-related operations
 
-export async function createOrder(telegramUserId: number) {
+export async function createOrder(
+  userData: {
+    telegramUserId?: number;
+    instagramUserId?: number;
+    status?: string;
+    totalAmount?: string;
+    deliveryFee?: string;
+    isDelivery?: boolean;
+    paymentMethod?: string;
+    paymentStatus?: string;
+  }
+) {
   try {
+    // Check if user has a valid ID
+    if (!userData.telegramUserId && !userData.instagramUserId) {
+      throw new Error("Either telegramUserId or instagramUserId must be provided");
+    }
+    
     // Check if user already has an active order
-    const existingOrder = await storage.getActiveOrderByTelegramUserId(telegramUserId);
+    let existingOrder;
+    
+    if (userData.telegramUserId) {
+      existingOrder = await storage.getActiveOrderByTelegramUserId(userData.telegramUserId);
+    } else if (userData.instagramUserId) {
+      existingOrder = await storage.getActiveOrderByInstagramUserId(userData.instagramUserId);
+    }
     
     if (existingOrder) {
       return existingOrder;
     }
     
+    // Set default values if not provided
+    const orderData = {
+      ...userData,
+      status: userData.status || "pending",
+      totalAmount: userData.totalAmount || "0",
+      deliveryFee: userData.deliveryFee || "0",
+      isDelivery: userData.isDelivery !== undefined ? userData.isDelivery : true,
+      paymentMethod: userData.paymentMethod || "cash",
+      paymentStatus: userData.paymentStatus || "pending"
+    };
+    
     // Create a new order
-    const newOrder = await storage.createOrder({
-      telegramUserId,
-      status: "pending",
-      totalAmount: "0",
-      deliveryFee: "0",
-      isDelivery: true,
-      paymentMethod: "cash",
-      paymentStatus: "pending"
-    });
+    const newOrder = await storage.createOrder(orderData);
+    
+    // Log the order creation with platform info
+    const userType = userData.telegramUserId ? "telegram" : "instagram";
+    const userId = userData.telegramUserId || userData.instagramUserId;
+    
+    log(`Created new order ${newOrder.id} for ${userType} user ${userId}`, "order");
     
     return newOrder;
   } catch (error) {

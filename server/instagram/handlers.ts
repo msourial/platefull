@@ -283,10 +283,15 @@ async function processWithAnthropic(
     const conversationHistory = await storage.getInstagramConversationMessages(conversation.id, 10);
     
     // Format conversation history for Claude
-    const formattedHistory = conversationHistory.map(msg => ({
-      role: msg.isFromUser ? 'user' : 'assistant',
-      content: msg.text
-    }));
+    const formattedHistory = [];
+    
+    // Process conversation messages for Claude's expected format
+    for (const msg of conversationHistory) {
+      formattedHistory.push({
+        role: msg.isFromUser ? 'user' : 'assistant',
+        content: msg.text
+      });
+    }
     
     // Add the current message if not already in history
     if (formattedHistory.length === 0 || 
@@ -321,7 +326,12 @@ async function processWithAnthropic(
       Keep responses short and conversational, as if texting with a friend.
       
       Use emojis to make your responses more engaging.`,
-      messages: formattedHistory
+      messages: [
+        ...formattedHistory.map(msg => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content
+        }))
+      ]
     });
     
     // Extract the assistant's response
