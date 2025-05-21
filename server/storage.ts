@@ -183,6 +183,19 @@ export const storage = {
   },
 
   // Menu Item methods
+  getPopularMenuItems: async (limit: number = 3) => {
+    // Get menu items ordered by popularity (most ordered)
+    // For now, we'll just return some menu items since we don't have actual order data yet
+    const items = await db.query.menuItems.findMany({
+      limit,
+      with: {
+        category: true
+      }
+    });
+    
+    return items;
+  },
+  
   getMenuItems: async (categoryId?: number) => {
     if (categoryId) {
       return await db.query.menuItems.findMany({

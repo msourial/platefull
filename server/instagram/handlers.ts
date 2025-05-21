@@ -3,6 +3,7 @@ import { log } from '../vite';
 import { storage } from '../storage';
 import { getPersonalizedRecommendations, checkForReorderSuggestion } from '../services/orderHistory';
 import { createOrder, addItemToOrder } from '../services/order';
+import { sendMessageToInstagram } from './bot';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
@@ -294,23 +295,21 @@ async function processWithAnthropic(
     const conversationHistory = await storage.getInstagramConversationMessages(conversation.id, 10);
     
     // Format conversation history for Claude
-    // We need to create properly typed messages for Anthropic
-    const messages = [];
+    const formattedHistory = [];
     
-    // Process previous messages in the conversation
-    if (conversationHistory && conversationHistory.length > 0) {
-      for (const msg of conversationHistory) {
-        messages.push({
-          role: msg.isFromUser ? 'user' as const : 'assistant' as const,
-          content: msg.text
-        });
-      }
+    // Process conversation messages for Claude's expected format
+    for (const msg of conversationHistory) {
+      formattedHistory.push({
+        role: msg.isFromUser ? 'user' : 'assistant',
+        content: msg.text
+      });
     }
     
     // Add the current message if not already in history
-    if (messages.length === 0 || messages[messages.length - 1].content !== message) {
-      messages.push({
-        role: 'user' as const,
+    if (formattedHistory.length === 0 || 
+        formattedHistory[formattedHistory.length - 1].content !== message) {
+      formattedHistory.push({
+        role: 'user',
         content: message
       });
     }
@@ -339,7 +338,10 @@ async function processWithAnthropic(
       Keep responses short and conversational, as if texting with a friend.
       
       Use emojis to make your responses more engaging.`,
-      messages
+      messages: formattedHistory.map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content
+      }))
     });
     
     // Extract the assistant's response
@@ -412,42 +414,54 @@ async function handleConfirmation(
     
     // Handle pending item addition
     if (context.pendingAddItem && context.pendingItemId) {
-      // Get or create an order
-      let order = await storage.getActiveOrderByInstagramUserId(instagramUser.id);
+      try {
+        // Get or create an order
+        let order = await storage.getActiveOrderByInstagramUserId(instagramUser.id);
+        
+        if (!order) {
+          // Create a new order
+          order = await createOrder({
+            instagramUserId: instagramUser.id,
+            status: "pending",
+            totalAmount: "0.00",
+            deliveryFee: "0.00",
+            isDelivery: true,
+            paymentMethod: "cash",
+            paymentStatus: "pending"
+          });
+        }
+        
+        if (order && context.pendingItemId) {
+          // Add the item to the order
+          await addItemToOrder(order.id, context.pendingItemId, 1, "");
+        } else {
+          log(`Error: Could not add item to order - ${order ? 'Missing item ID' : 'No order found'}`, 'instagram-error');
+        }
+        
+        // Send confirmation message
+        await sendInstagramMessage(
+          instagramId, 
+          `Great! I've added ${context.pendingAddItem} to your order. Would you like to add anything else?`
+        );
       
-      if (!order) {
-        // Create a new order
-        order = await createOrder({
-          instagramUserId: instagramUser.id,
-          status: "pending",
-          totalAmount: "0.00",
-          deliveryFee: "0.00",
-          isDelivery: true,
-          paymentMethod: "cash",
-          paymentStatus: "pending"
+        // Update conversation state
+        await storage.updateInstagramConversation(conversation.id, {
+          state: 'ordering',
+          context: {
+            ...context,
+            pendingAddItem: null,
+            pendingItemId: null,
+            lastOrderId: order?.id
+          },
+          updatedAt: new Date()
         });
+      } catch (error) {
+        log(`Error handling confirmation: ${error}`, 'instagram-error');
+        await sendInstagramMessage(
+          instagramId,
+          "I'm sorry, I couldn't process your order. Please try again later."
+        );
       }
-      
-      // Add the item to the order
-      await addItemToOrder(order.id, context.pendingItemId, 1, "");
-      
-      // Send confirmation message
-      await sendInstagramMessage(
-        instagramId, 
-        `Great! I've added ${context.pendingAddItem} to your order. Would you like to add anything else?`
-      );
-      
-      // Update conversation state
-      await storage.updateInstagramConversation(conversation.id, {
-        state: 'ordering',
-        context: {
-          ...context,
-          pendingAddItem: null,
-          pendingItemId: null,
-          lastOrderId: order.id
-        },
-        updatedAt: new Date()
-      });
       
       // Suggest adding sides or drinks
       setTimeout(async () => {
@@ -462,45 +476,54 @@ async function handleConfirmation(
     
     // Handle reorder confirmation
     if (conversation.state === 'confirming_reorder' && context.reorderItems && context.lastOrderId) {
-      // Create a new order
-      const newOrder = await createOrder({
-        instagramUserId: instagramUser.id,
-        status: "pending",
-        totalAmount: "0.00",
-        deliveryFee: "0.00",
-        isDelivery: true,
-        paymentMethod: "cash",
-        paymentStatus: "pending"
-      });
-      
-      // Add all items from the previous order
-      for (const item of context.reorderItems) {
-        await addItemToOrder(
-          newOrder.id,
-          item.menuItemId,
-          item.quantity,
-          item.customizations || {}
+      try {
+        // Create a new order
+        const newOrder = await createOrder({
+          instagramUserId: instagramUser.id,
+          status: "pending",
+          totalAmount: "0.00",
+          deliveryFee: "0.00",
+          isDelivery: true,
+          paymentMethod: "cash",
+          paymentStatus: "pending"
+        });
+        
+        // Add all items from the previous order
+        for (const item of context.reorderItems) {
+          await addItemToOrder(
+            newOrder.id,
+            item.menuItemId,
+            item.quantity,
+            item.specialInstructions || ""
+          );
+        }
+        
+        // Send confirmation message
+        await sendInstagramMessage(
+          instagramId, 
+          "Perfect! I've recreated your previous order. Would you like to add anything else or proceed to checkout?"
         );
+        
+        // Update conversation state
+        await storage.updateInstagramConversation(conversation.id, {
+          state: 'ordering',
+          context: {
+            ...context,
+            reorderItems: null,
+            lastOrderId: newOrder.id
+          },
+          updatedAt: new Date()
+        });
+        
+        return true;
+      } catch (error) {
+        log(`Error handling reorder confirmation: ${error}`, 'instagram-error');
+        await sendInstagramMessage(
+          instagramId,
+          "I'm sorry, I couldn't process your reorder request. Please try again later."
+        );
+        return false;
       }
-      
-      // Send confirmation message
-      await sendInstagramMessage(
-        instagramId, 
-        "Perfect! I've recreated your previous order. Would you like to add anything else or proceed to checkout?"
-      );
-      
-      // Update conversation state
-      await storage.updateInstagramConversation(conversation.id, {
-        state: 'ordering',
-        context: {
-          ...context,
-          reorderItems: null,
-          lastOrderId: newOrder.id
-        },
-        updatedAt: new Date()
-      });
-      
-      return true;
     }
     
     // No specific confirmation handler matched
@@ -655,11 +678,15 @@ async function sendPersonalRecommendations(instagramId: string, userId: number, 
       let message = "📈 *Popular Items*\n\n";
       
       popularItems.forEach((item, index) => {
-        const price = typeof item.price === 'number' 
-          ? item.price.toFixed(2) 
-          : parseFloat(item.price.toString()).toFixed(2);
+        // Handle different types of price
+        let priceDisplay = "";
+        if (typeof item.price === 'number') {
+          priceDisplay = item.price.toFixed(2);
+        } else if (item.price) {
+          priceDisplay = parseFloat(item.price.toString()).toFixed(2);
+        }
           
-        message += `${index + 1}. ${item.name} - $${price}\n`;
+        message += `${index + 1}. ${item.name} - $${priceDisplay}\n`;
         
         if (item.description) {
           message += `   ${item.description}\n`;
@@ -684,11 +711,14 @@ async function sendPersonalRecommendations(instagramId: string, userId: number, 
     
     if (menuItem) {
       // Format price for display
-      const price = typeof menuItem.price === 'number' 
-        ? menuItem.price.toFixed(2) 
-        : parseFloat(menuItem.price.toString()).toFixed(2);
+      let priceDisplay = "";
+      if (typeof menuItem.price === 'number') {
+        priceDisplay = menuItem.price.toFixed(2);
+      } else if (menuItem.price) {
+        priceDisplay = parseFloat(menuItem.price.toString()).toFixed(2);
+      }
       
-      let message = `*${menuItem.name}* - $${price}\n`;
+      let message = `*${menuItem.name}* - $${priceDisplay}\n`;
       
       if (menuItem.description) {
         message += `${menuItem.description}\n`;
@@ -793,30 +823,30 @@ async function handleReorderRequest(instagramId: string, userId: number, convers
  * @param instagramId Instagram ID
  * @param message Message text
  */
-export async function sendInstagramMessage(instagramId: string, message: string): Promise<boolean> {
+async function sendInstagramMessage(instagramId: string, message: string): Promise<boolean> {
   try {
-    // In a real application, you would make an API call to the Instagram Graph API
-    // This is a placeholder to be implemented once you have Instagram API credentials
+    // Send message using bot
+    const success = await sendMessageToInstagram(instagramId, message);
     
-    log(`[MOCK] Sending message to Instagram user ${instagramId}: ${message}`, 'instagram');
-    
-    // Get user and conversation for tracking
-    const user = await storage.getInstagramUserByInstagramId(instagramId);
-    
-    if (user) {
-      const conversation = await storage.getInstagramConversationByUserId(user.id);
+    if (success) {
+      // Get user and conversation for tracking
+      const user = await storage.getInstagramUserByInstagramId(instagramId);
       
-      if (conversation) {
-        // Track message in database
-        await storage.createInstagramConversationMessage(conversation.id, {
-          text: message,
-          isFromUser: false,
-          timestamp: new Date()
-        });
+      if (user) {
+        const conversation = await storage.getInstagramConversationByUserId(user.id);
+        
+        if (conversation) {
+          // Track message in database
+          await storage.createInstagramConversationMessage(conversation.id, {
+            text: message,
+            isFromUser: false,
+            timestamp: new Date()
+          });
+        }
       }
     }
     
-    return true;
+    return success;
   } catch (error) {
     log(`Error sending Instagram message: ${error}`, 'instagram-error');
     return false;
