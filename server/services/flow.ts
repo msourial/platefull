@@ -381,8 +381,9 @@ export async function authorizeAgentSpending(
     `;
 
     try {
-      // Create real Flow blockchain transaction for agent authorization
-      const txId = await createRealAgentAuthorization(userAddress, spendingLimit, durationHours);
+      // Create real Flow testnet transaction for agent authorization
+      const { createRealAgentAuthorization } = await import('./flow-testnet');
+      const txId = await createRealAgentAuthorization(userAddress, AI_AGENT_ADDRESS, spendingLimit, durationHours);
       
       if (txId) {
         // Store authorization locally for quick access
