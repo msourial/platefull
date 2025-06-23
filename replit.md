@@ -18,6 +18,13 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 
 ## Recent Major Updates (January 2025)
 
+### Flow AI Agent Authorization System ✓ 
+- **Automated Payments**: AI agent can now process FLOW payments on behalf of users
+- **Spending Authorization**: Users can delegate spending rights to AI agent with limits (100 FLOW, 24h duration)
+- **Telegram Integration**: Complete automated payment flow integrated into Telegram bot
+- **Smart Payment Options**: Dynamic payment UI showing manual vs automated options based on authorization status
+- **Testnet Configuration**: Full testnet integration for safe testing of agent spending capabilities
+
 ### Flow Agent Kit Integration ✓
 - **Blockchain Service**: Comprehensive Flow blockchain integration (`server/services/flow.ts`)
 - **Wallet Management**: Flow wallet connection and verification system
@@ -125,10 +132,13 @@ COINBASE_COMMERCE_API_KEY=...
 ✅ Complete web dashboard interface
 ✅ Authentic Boustan menu integration
 ✅ Telegram bot Flow payment integration with proper conversation flow
+✅ Flow AI agent automated payment system with spending authorization
+✅ Dynamic payment UI showing manual vs automated options
+✅ Testnet integration for safe AI agent spending testing
 
 ## Next Steps
 - Deploy smart contracts for production Flow integration
 - Implement real-time order tracking on blockchain
 - Add more sophisticated NFT reward mechanics
-- Expand payment options with additional cryptocurrencies
-- Enhance AI conversation capabilities with advanced context
+- Expand AI agent capabilities with spending analytics
+- Enhance conversation capabilities with payment history context
