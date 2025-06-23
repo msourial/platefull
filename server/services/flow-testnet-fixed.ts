@@ -84,8 +84,8 @@ export async function createRealAgentAuthorization(
       gas_limit: "1000",
       proposal_key: {
         address: SERVICE_ADDRESS,
-        key_index: "0",
-        sequence_number: (sequenceNumber + 1).toString()
+        key_index: 0,
+        sequence_number: sequenceNumber + 1
       },
       payer: SERVICE_ADDRESS,
       authorizers: [SERVICE_ADDRESS]

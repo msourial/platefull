@@ -246,6 +246,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Flow test endpoint
+  app.post("/api/flow/test-minimal", async (req, res) => {
+    try {
+      const { testMinimalFlowTransaction } = await import('./services/flow-minimal-test');
+      await testMinimalFlowTransaction();
+      res.json({ success: true, message: "Flow transaction test completed - check logs" });
+    } catch (error) {
+      log(`Flow test error: ${error}`, 'flow-error');
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Flow AI agent authorization endpoints
   app.post("/api/flow/authorize-agent", async (req, res) => {
     try {
