@@ -53,6 +53,9 @@ interface FlowAgentAuthorization {
 // AI Agent wallet address for testnet
 const AI_AGENT_ADDRESS = process.env.FLOW_AI_AGENT_ADDRESS || "0x01cf0e2f2f715450";
 
+// Restaurant wallet address for receiving payments
+const RESTAURANT_WALLET_ADDRESS = process.env.FLOW_RESTAURANT_ADDRESS || "0x179b6b1cb6755e31";
+
 /**
  * Initialize Flow blockchain connection
  */
@@ -199,13 +202,18 @@ export async function processFlowPayment(
   orderId: number
 ): Promise<string | null> {
   try {
-    // This would handle FLOW token payment through smart contracts
-    const transactionId = generateMockTransactionId();
+    // Create real Flow testnet payment transaction
+    const { createRealPaymentTransaction } = await import('./flow-testnet');
+    const transactionId = await createRealPaymentTransaction(customerAddress, RESTAURANT_WALLET_ADDRESS, amount, orderId);
     
-    log(`Processed Flow payment: ${amount} FLOW from ${customerAddress} for order ${orderId}`, 'flow');
-    log(`Payment transaction ID: ${transactionId}`, 'flow');
-    
-    return transactionId;
+    if (transactionId) {
+      log(`Processed real Flow testnet payment: ${amount} FLOW from ${customerAddress} for order ${orderId}`, 'flow');
+      log(`Payment transaction ID: ${transactionId}`, 'flow');
+      return transactionId;
+    } else {
+      log(`Failed to create Flow testnet payment transaction`, 'flow-error');
+      return null;
+    }
   } catch (error) {
     log(`Error processing Flow payment: ${error}`, 'flow-error');
     return null;
@@ -492,13 +500,14 @@ export async function processAuthorizedAgentPayment(
       }
     `;
 
-    // Create real Flow blockchain transaction for payment
-    const txId = await createRealPaymentTransaction(userAddress, amount, orderId);
+    // Create real Flow testnet transaction for payment
+    const { createRealPaymentTransaction } = await import('./flow-testnet');
+    const txId = await createRealPaymentTransaction(userAddress, RESTAURANT_WALLET_ADDRESS, amount, orderId);
     
     if (txId) {
       return txId;
     } else {
-      throw new Error('Failed to create real Flow payment transaction');
+      throw new Error('Failed to create real Flow testnet payment transaction');
     }
   } catch (error) {
     log(`Agent payment failed: ${error}`, 'flow-error');
