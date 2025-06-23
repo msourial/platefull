@@ -135,6 +135,20 @@ export async function handleIncomingMessage(bot: TelegramBot, msg: TelegramBot.M
         );
       }
       break;
+
+    case 'awaiting_agent_authorization':
+      // Process Flow wallet address for agent authorization
+      const agentWalletAddress = msg.text?.trim();
+      if (agentWalletAddress && agentWalletAddress.match(/^0x[a-fA-F0-9]{16}$/)) {
+        await processAgentAuthorization(bot, chatId, telegramUser, conversation, agentWalletAddress);
+      } else {
+        await bot.sendMessage(
+          chatId,
+          "Please enter a valid Flow wallet address (0x followed by 16 hex characters):",
+          createInlineKeyboard([[{ text: "⬅️ Cancel", callback_data: "checkout" }]])
+        );
+      }
+      break;
       
     default:
       // Handle any other states or reset to initial
@@ -1491,6 +1505,151 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
         state: 'awaiting_flow_address',
         context: { ...conversation.context }
       });
+      break;
+
+    case 'authorize_agent_spending':
+      await bot.sendMessage(
+        chatId,
+        `🤖 *Authorize AI Agent Spending*\n\n` +
+        `Allow our AI agent to automatically process your Flow payments for future orders.\n\n` +
+        `✨ *Benefits:*\n` +
+        `• Instant payment processing\n` +
+        `• No manual wallet confirmation needed\n` +
+        `• Secure spending limits\n` +
+        `• 24-hour authorization period\n\n` +
+        `Please enter your Flow wallet address to set up automated payments:`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "⬅️ Cancel", callback_data: "checkout" }]
+            ]
+          }
+        }
+      );
+      
+      // Update conversation state to expect wallet address for authorization
+      await storage.updateConversation(conversation.id, {
+        state: 'awaiting_agent_authorization',
+        context: { ...conversation.context }
+      });
+      break;
+
+    case 'use_agent_payment':
+      try {
+        const userWalletAddress = conversation.context.authorizedWalletAddress;
+        
+        if (!userWalletAddress) {
+          await bot.sendMessage(
+            chatId,
+            "❌ No authorized wallet found. Please authorize the AI agent first.",
+            createInlineKeyboard([
+              [{ text: "🤖 Authorize AI Agent", callback_data: "authorize_agent_spending" }],
+              [{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]
+            ])
+          );
+          break;
+        }
+
+        // Get the active order
+        const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+        
+        if (!activeOrder) {
+          await bot.sendMessage(
+            chatId,
+            "Your order seems to have expired. Please start a new order.",
+            createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
+          );
+          return;
+        }
+
+        // Calculate payment amount
+        const flowAmount = conversation.context.flowAmount;
+        const totalUSD = conversation.context.totalUSD;
+
+        await bot.sendMessage(
+          chatId,
+          `🤖 *Processing Automated Payment...*\n\n` +
+          `Wallet: ${userWalletAddress.slice(0, 8)}...${userWalletAddress.slice(-6)}\n` +
+          `Amount: ${flowAmount.toFixed(4)} FLOW ($${totalUSD.toFixed(2)} USD)\n\n` +
+          `The AI agent is processing your payment automatically...`,
+          { parse_mode: 'Markdown' }
+        );
+
+        // Process automated payment using agent authorization
+        const { processAuthorizedAgentPayment, createFlowOrder, awardLoyaltyPoints } = await import('../services/flow');
+        const paymentTxId = await processAuthorizedAgentPayment(userWalletAddress, flowAmount, activeOrder.id);
+
+        if (paymentTxId) {
+          // Create blockchain order record
+          const flowOrderTxId = await createFlowOrder({
+            orderId: activeOrder.id,
+            customerAddress: userWalletAddress,
+            items: activeOrder.orderItems.map(item => ({
+              name: item.menuItem.name,
+              price: parseFloat(item.price.toString()),
+              quantity: item.quantity
+            })),
+            totalAmount: totalUSD
+          });
+
+          // Award loyalty points
+          const loyaltyPoints = Math.floor(totalUSD * 10);
+          await awardLoyaltyPoints(userWalletAddress, loyaltyPoints, activeOrder.id);
+
+          // Update order with payment info
+          await storage.updateOrder(activeOrder.id, {
+            paymentMethod: 'flow_agent',
+            paymentStatus: 'completed'
+          });
+
+          await bot.sendMessage(
+            chatId,
+            `✅ *Payment Successful!*\n\n` +
+            `🤖 *AI Agent Payment:* ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
+            `💰 *Amount:* ${flowAmount.toFixed(4)} FLOW ($${totalUSD.toFixed(2)} USD)\n` +
+            `🎁 *Loyalty Points Earned:* ${loyaltyPoints}\n\n` +
+            `Your order has been placed and processed automatically via AI agent!\n\n` +
+            `We'll notify you when your order is ready for ${activeOrder.isDelivery ? 'delivery' : 'pickup'}.`,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "📋 View Order Details", callback_data: "view_order" }],
+                  [{ text: "🍔 Order Again", callback_data: "menu" }]
+                ]
+              }
+            }
+          );
+
+          // Reset conversation state
+          await storage.updateConversation(conversation.id, {
+            state: 'order_completed',
+            context: { authorizedWalletAddress: userWalletAddress }
+          });
+
+        } else {
+          await bot.sendMessage(
+            chatId,
+            "❌ Automated payment failed. The AI agent may not be authorized or the spending limit exceeded.",
+            createInlineKeyboard([
+              [{ text: "🤖 Re-authorize Agent", callback_data: "authorize_agent_spending" }],
+              [{ text: "💳 Manual Payment", callback_data: "manual_flow_address" }],
+              [{ text: "⬅️ Other Payment Options", callback_data: "checkout" }]
+            ])
+          );
+        }
+      } catch (error) {
+        log(`Error processing agent payment: ${error}`, 'telegram-error');
+        await bot.sendMessage(
+          chatId,
+          "❌ Error processing automated payment. Please try manual payment instead.",
+          createInlineKeyboard([
+            [{ text: "💳 Manual Payment", callback_data: "manual_flow_address" }],
+            [{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]
+          ])
+        );
+      }
       break;
       
     default:

@@ -246,6 +246,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Flow AI agent authorization endpoints
+  app.post("/api/flow/authorize-agent", async (req, res) => {
+    try {
+      const { userAddress, spendingLimit, durationHours } = req.body;
+      
+      if (!userAddress || !spendingLimit) {
+        return res.status(400).json({ error: "User address and spending limit are required" });
+      }
+
+      const { authorizeAgentSpending } = await import('./services/flow');
+      const authTxId = await authorizeAgentSpending(userAddress, spendingLimit, durationHours || 24);
+      
+      if (authTxId) {
+        res.json({ 
+          success: true, 
+          authorizationId: authTxId,
+          spendingLimit,
+          durationHours: durationHours || 24,
+          message: `AI agent authorized to spend up to ${spendingLimit} FLOW from your wallet`
+        });
+      } else {
+        res.status(500).json({ error: "Failed to authorize agent spending" });
+      }
+    } catch (error) {
+      log(`Error authorizing agent spending: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to authorize agent spending" });
+    }
+  });
+
+  app.post("/api/flow/revoke-agent", async (req, res) => {
+    try {
+      const { userAddress } = req.body;
+      
+      if (!userAddress) {
+        return res.status(400).json({ error: "User address is required" });
+      }
+
+      const { revokeAgentAuthorization } = await import('./services/flow');
+      const success = await revokeAgentAuthorization(userAddress);
+      
+      if (success) {
+        res.json({ 
+          success: true,
+          message: "AI agent spending authorization revoked"
+        });
+      } else {
+        res.status(500).json({ error: "Failed to revoke agent authorization" });
+      }
+    } catch (error) {
+      log(`Error revoking agent authorization: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to revoke agent authorization" });
+    }
+  });
+
+  app.post("/api/flow/agent-payment", async (req, res) => {
+    try {
+      const { userAddress, amount, orderId } = req.body;
+      
+      if (!userAddress || !amount || !orderId) {
+        return res.status(400).json({ error: "User address, amount, and order ID are required" });
+      }
+
+      const { processAuthorizedAgentPayment } = await import('./services/flow');
+      const paymentTxId = await processAuthorizedAgentPayment(userAddress, amount, orderId);
+      
+      if (paymentTxId) {
+        res.json({ 
+          success: true,
+          transactionId: paymentTxId,
+          amount,
+          message: `Payment of ${amount} FLOW processed automatically`
+        });
+      } else {
+        res.status(400).json({ error: "Agent not authorized or payment failed" });
+      }
+    } catch (error) {
+      log(`Error processing agent payment: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to process agent payment" });
+    }
+  });
+
   // Flow wallet browser extension connection endpoint
   app.get("/api/flow/connect", async (req, res) => {
     try {
