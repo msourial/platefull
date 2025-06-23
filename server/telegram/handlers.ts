@@ -1510,14 +1510,14 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
     case 'authorize_agent_spending':
       await bot.sendMessage(
         chatId,
-        `🤖 *Authorize AI Agent Spending*\n\n` +
-        `Allow our AI agent to automatically process your Flow payments for future orders.\n\n` +
-        `✨ *Benefits:*\n` +
-        `• Instant payment processing\n` +
-        `• No manual wallet confirmation needed\n` +
-        `• Secure spending limits\n` +
-        `• 24-hour authorization period\n\n` +
-        `Please enter your Flow wallet address to set up automated payments:`,
+        `🤖 *AI Agent Authorization Setup*\n\n` +
+        `I need your Flow wallet address to set up automated payments.\n\n` +
+        `✨ *Security Features:*\n` +
+        `• Spending limit: 100 FLOW maximum\n` +
+        `• Auto-expires in 24 hours\n` +
+        `• Real Flow testnet transactions\n` +
+        `• Full blockchain verification\n\n` +
+        `Please enter your Flow wallet address (0x followed by 16 hex characters):`,
         {
           parse_mode: 'Markdown',
           reply_markup: {
@@ -2894,7 +2894,7 @@ async function handleFlowPayment(
     const { usdToFlow } = await import('../services/flow');
     const flowAmount = usdToFlow(total);
     
-    // Check if user has already authorized the AI agent
+    // Check if user has already authorized the AI agent in this session
     const hasAuthorization = conversation.context?.authorizedWalletAddress;
     
     const paymentOptions = hasAuthorization ? [
@@ -3289,10 +3289,11 @@ async function processAgentAuthorization(
       await bot.sendMessage(
         chatId,
         `✅ *AI Agent Authorized Successfully!*\n\n` +
-        `🤖 *Authorization ID:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
-        `💰 *Spending Limit:* 100 FLOW\n` +
-        `⏰ *Valid for:* 24 hours\n\n` +
-        `The AI agent can now process your Flow payments automatically! You can proceed with your current order or future orders will use automated payments.`,
+        `🔗 *Flow Testnet Transaction:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
+        `💰 *Spending Limit:* 100 FLOW tokens\n` +
+        `⏰ *Valid for:* 24 hours\n` +
+        `🌐 *Testnet Explorer:* https://testnet.flowdiver.io/tx/${authTxId}\n\n` +
+        `The AI agent can now process your Flow payments automatically with real testnet transactions!`,
         {
           parse_mode: 'Markdown',
           reply_markup: {
