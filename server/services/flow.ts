@@ -5,7 +5,7 @@ import {
   createRealAgentAuthorization, 
   createRealPaymentTransaction,
   verifyFlowTransaction 
-} from "./flow-real";
+} from "./flow-testnet-fixed";
 
 // Flow configuration for testnet
 fcl.config({
@@ -501,7 +501,7 @@ export async function processAuthorizedAgentPayment(
     `;
 
     // Create real Flow testnet transaction for payment
-    const { createRealPaymentTransaction } = await import('./flow-testnet');
+    const { createRealPaymentTransaction } = await import('./flow-testnet-fixed');
     const txId = await createRealPaymentTransaction(userAddress, RESTAURANT_WALLET_ADDRESS, amount, orderId);
     
     if (txId) {
