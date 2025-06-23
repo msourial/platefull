@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { initBot } from "./telegram/bot";
 import { initInstagramBot, processInstagramWebhook, verifyWebhook } from "./instagram/bot";
 import { getRecentOrders, getOrdersByStatus, updateOrderStatus } from "./services/order";
+import { initFlowConnection, verifyFlowAddress, getCustomerLoyaltyPoints, flowToUSD, usdToFlow } from "./services/flow";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -177,7 +178,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Flow blockchain API routes
+  app.post("/api/flow/verify-address", async (req, res) => {
+    try {
+      const { address } = req.body;
+      
+      if (!address) {
+        return res.status(400).json({ error: "Address is required" });
+      }
+      
+      const isValid = await verifyFlowAddress(address);
+      res.json({ valid: isValid, address });
+    } catch (error) {
+      log(`Error verifying Flow address: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to verify address" });
+    }
+  });
+
+  app.get("/api/flow/loyalty/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      if (!address) {
+        return res.status(400).json({ error: "Address is required" });
+      }
+      
+      const loyaltyData = await getCustomerLoyaltyPoints(address);
+      
+      if (!loyaltyData) {
+        return res.status(404).json({ error: "No loyalty data found" });
+      }
+      
+      res.json(loyaltyData);
+    } catch (error) {
+      log(`Error getting loyalty points: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to get loyalty points" });
+    }
+  });
+
+  app.post("/api/flow/convert", async (req, res) => {
+    try {
+      const { amount, from, to } = req.body;
+      
+      if (!amount || !from || !to) {
+        return res.status(400).json({ error: "Amount, from, and to currencies are required" });
+      }
+      
+      let converted;
+      if (from === "USD" && to === "FLOW") {
+        converted = usdToFlow(amount);
+      } else if (from === "FLOW" && to === "USD") {
+        converted = flowToUSD(amount);
+      } else {
+        return res.status(400).json({ error: "Unsupported currency conversion" });
+      }
+      
+      res.json({ 
+        original: amount, 
+        converted, 
+        from, 
+        to,
+        rate: from === "USD" ? 1/0.75 : 0.75
+      });
+    } catch (error) {
+      log(`Error converting currency: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to convert currency" });
+    }
+  });
+
   const httpServer = createServer(app);
+
+  // Initialize bots and Flow connection
+  initBot();
+  initInstagramBot();
+  initFlowConnection();
 
   return httpServer;
 }

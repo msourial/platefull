@@ -5,6 +5,7 @@ import { processNaturalLanguage } from '../services/nlp';
 import { checkForReorderSuggestion, getPersonalizedRecommendations } from '../services/orderHistory';
 import { createOrder, addItemToOrder, removeItemFromOrder, clearOrder } from '../services/order';
 import { processPayment } from '../services/payment';
+import { createFlowOrder, awardLoyaltyPoints, getCustomerLoyaltyPoints, processFlowPayment, mintOrderNFT, verifyFlowAddress } from '../services/flow';
 import { log } from '../vite';
 
 // Helper function to check for potential typos in dietary preferences

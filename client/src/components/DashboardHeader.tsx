@@ -41,6 +41,9 @@ export default function DashboardHeader() {
             <Link href="/settings" className={`text-sm font-medium transition-colors ${isActive('/settings') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>
               Settings
             </Link>
+            <Link href="/wallet" className={`text-sm font-medium transition-colors ${isActive('/wallet') ? 'text-restaurant-green' : 'text-muted-foreground hover:text-foreground'}`}>
+              Flow Wallet
+            </Link>
           </nav>
         </div>
         

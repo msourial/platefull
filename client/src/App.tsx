@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import Orders from "@/pages/orders";
 import Menu from "@/pages/menu";
 import Settings from "@/pages/settings";
+import FlowWallet from "@/pages/FlowWallet";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/orders" component={Orders} />
       <Route path="/menu" component={Menu} />
       <Route path="/settings" component={Settings} />
+      <Route path="/wallet" component={FlowWallet} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
