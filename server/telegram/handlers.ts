@@ -1121,7 +1121,7 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
               );
               
               if (remainingOptions.length > 0) {
-                // First try to get the next customization option
+                // Show next customization option only if there are remaining ones
                 const nextOption = remainingOptions[0];
                 const choices = nextOption.choices as string[];
                 
@@ -1138,7 +1138,7 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
               }
             }
             
-            // No more customization options, proceed to suggest sides
+            // No more customization options, proceed with normal flow
             const category = await storage.getCategoryById(menuItem.categoryId);
             const orderIdForSuggestions = orderItem.orderId;
             
@@ -2442,21 +2442,25 @@ async function askForCustomizations(
   
   if (!orderItem) return;
   
-  for (const option of menuItem.customizationOptions) {
-    const choices = option.choices as string[];
+  // Check existing customizations to find the first uncustomized option
+  const existingCustomizations = orderItem.customizations || {};
+  const remainingOptions = menuItem.customizationOptions.filter(option => 
+    !existingCustomizations[option.name]
+  );
+  
+  if (remainingOptions.length > 0) {
+    const nextOption = remainingOptions[0];
+    const choices = nextOption.choices as string[];
     
     const keyboard = choices.map(choice => [
-      { text: choice, callback_data: `customization:${orderItem.id}:${option.name}:${choice}` }
+      { text: choice, callback_data: `customization:${orderItem.id}:${nextOption.name}:${choice}` }
     ]);
     
     await bot.sendMessage(
       chatId,
-      `Please select ${option.name} for your ${menuItem.name}: 👇`,
+      `Please select ${nextOption.name} for your ${menuItem.name}: 👇`,
       createInlineKeyboard(keyboard)
     );
-    
-    // Only ask for one customization at a time
-    break;
   }
 }
 
