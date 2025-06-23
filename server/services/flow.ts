@@ -5,7 +5,7 @@ import {
   createRealAgentAuthorization, 
   createRealPaymentTransaction,
   verifyFlowTransaction 
-} from "./flow-testnet-fixed";
+} from "./flow-signed";
 
 // Flow configuration for testnet
 fcl.config({
