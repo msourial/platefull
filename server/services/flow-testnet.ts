@@ -3,6 +3,7 @@ import { log } from "../vite";
 // Service account configuration
 const SERVICE_ADDRESS = process.env.FLOW_SERVICE_ADDRESS;
 const SERVICE_PRIVATE_KEY = process.env.FLOW_SERVICE_PRIVATE_KEY;
+const SERVICE_KEY_ID = process.env.FLOW_SERVICE_KEY_ID || "0";
 const FLOW_API_BASE = "https://rest-testnet.onflow.org";
 
 interface FlowTransaction {
@@ -52,23 +53,29 @@ export async function createRealAgentAuthorization(
       }
     `;
 
-    // Prepare transaction payload
+    // Get current block for reference
+    const blockResponse = await fetch(`${FLOW_API_BASE}/v1/blocks?height=sealed`);
+    const blockData = await blockResponse.json();
+    const referenceBlockId = blockData[0]?.id || "0000000000000000000000000000000000000000000000000000000000000000";
+
+    // Prepare transaction payload with correct Flow REST API format
     const transaction = {
-      script: Buffer.from(script).toString('base64'),
+      script: script,
       arguments: [
         { type: "Address", value: userAddress },
         { type: "Address", value: agentAddress },
         { type: "UFix64", value: spendingLimit.toFixed(8) },
         { type: "UFix64", value: durationHours.toString() }
       ],
-      proposalKey: {
+      reference_block_id: referenceBlockId,
+      gas_limit: 1000,
+      proposal_key: {
         address: SERVICE_ADDRESS,
-        keyIndex: 0,
-        sequenceNumber: currentHeight + Math.floor(Math.random() * 1000)
+        key_index: parseInt(SERVICE_KEY_ID),
+        sequence_number: Math.floor(Date.now() / 1000)
       },
       payer: SERVICE_ADDRESS,
-      authorizers: [SERVICE_ADDRESS],
-      gasLimit: "1000"
+      authorizers: [SERVICE_ADDRESS]
     };
 
     // Submit transaction to Flow testnet
@@ -147,23 +154,27 @@ export async function createRealPaymentTransaction(
       }
     `;
 
-    // Prepare transaction payload
+    // Get reference block ID
+    const referenceBlockId = blockData[0]?.id || "0000000000000000000000000000000000000000000000000000000000000000";
+
+    // Prepare transaction payload with proper Flow REST API format
     const transaction = {
       script: Buffer.from(script).toString('base64'),
       arguments: [
-        { type: "Address", value: fromAddress },
-        { type: "Address", value: toAddress },
-        { type: "UFix64", value: amount.toFixed(8) },
-        { type: "UInt64", value: orderId.toString() }
+        Buffer.from(JSON.stringify({ type: "Address", value: fromAddress })).toString('base64'),
+        Buffer.from(JSON.stringify({ type: "Address", value: toAddress })).toString('base64'),
+        Buffer.from(JSON.stringify({ type: "UFix64", value: amount.toFixed(8) })).toString('base64'),
+        Buffer.from(JSON.stringify({ type: "UInt64", value: orderId.toString() })).toString('base64')
       ],
-      proposalKey: {
+      reference_block_id: referenceBlockId,
+      gas_limit: "1000",
+      proposal_key: {
         address: SERVICE_ADDRESS,
-        keyIndex: 0,
-        sequenceNumber: currentHeight + Math.floor(Math.random() * 1000)
+        key_index: parseInt(SERVICE_KEY_ID),
+        sequence_number: Math.floor(Date.now() / 1000)
       },
       payer: SERVICE_ADDRESS,
-      authorizers: [SERVICE_ADDRESS],
-      gasLimit: "1000"
+      authorizers: [SERVICE_ADDRESS]
     };
 
     // Submit transaction to Flow testnet
