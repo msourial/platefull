@@ -1,6 +1,11 @@
 import * as fcl from "@onflow/fcl";
 import * as types from "@onflow/types";
 import { log } from "../vite";
+import { 
+  createRealAgentAuthorization, 
+  createRealPaymentTransaction,
+  verifyFlowTransaction 
+} from "./flow-real";
 
 // Flow configuration for testnet
 fcl.config({
@@ -376,42 +381,23 @@ export async function authorizeAgentSpending(
     `;
 
     try {
-      // First verify we can connect to Flow testnet
-      const blockInfo = await fcl.send([fcl.getBlock(true)]).then(fcl.decode);
+      // Create real Flow blockchain transaction for agent authorization
+      const txId = await createRealAgentAuthorization(userAddress, spendingLimit, durationHours);
       
-      log(`Connected to Flow testnet, current block: ${blockInfo.height}`, 'flow-agent');
-      log(`Creating authorization transaction on Flow testnet...`, 'flow-agent');
-      
-      // Real Flow transaction submission
-      const txId = await fcl.mutate({
-        cadence: authorizationTx,
-        args: (arg, t) => [
-          arg(AI_AGENT_ADDRESS, t.Address),
-          arg(spendingLimit.toFixed(8), t.UFix64),
-          arg((durationHours * 3600).toString(), t.UInt64)
-        ],
-        proposer: fcl.authz,
-        payer: fcl.authz,
-        authorizations: [fcl.authz],
-        limit: 1000
-      });
-
-      log(`Transaction submitted to Flow testnet: ${txId}`, 'flow-agent');
-      
-      // Wait for transaction to be sealed on testnet
-      const sealedTx = await fcl.tx(txId).onceSealed();
-      
-      log(`Real Flow Testnet Transaction Sealed:`, 'flow-agent');
-      log(`  Transaction ID: ${txId}`, 'flow-agent');
-      log(`  Status: ${sealedTx.status}`, 'flow-agent');
-      log(`  Block Height: ${sealedTx.blockId}`, 'flow-agent');
-      log(`  User Wallet: ${userAddress}`, 'flow-agent');
-      log(`  Agent Wallet: ${AI_AGENT_ADDRESS}`, 'flow-agent');
-      log(`  Spending Limit: ${spendingLimit} FLOW`, 'flow-agent');
-      log(`  Valid Until: ${new Date(expirationTime).toISOString()}`, 'flow-agent');
-      log(`  Testnet Explorer: https://testnet.flowdiver.io/tx/${txId}`, 'flow-agent');
-      
-      return txId;
+      if (txId) {
+        // Store authorization locally for quick access
+        const authorization: FlowAgentAuthorization = {
+          userAddress,
+          agentAddress: AI_AGENT_ADDRESS,
+          spendingLimit,
+          expirationTime,
+          isActive: true
+        };
+        
+        return txId;
+      } else {
+        throw new Error('Failed to create real Flow transaction');
+      }
     } catch (flowError) {
       log(`Real Flow transaction failed: ${flowError.toString()}`, 'flow-error');
       
@@ -501,46 +487,13 @@ export async function processAuthorizedAgentPayment(
       }
     `;
 
-    try {
-      const txId = await fcl.mutate({
-        cadence: paymentTx,
-        args: (arg, t) => [
-          arg(process.env.FLOW_RESTAURANT_ADDRESS || "0xRestaurant", t.Address),
-          arg(amount.toFixed(8), t.UFix64),
-          arg(orderId.toString(), t.String)
-        ],
-        proposer: fcl.authz,
-        payer: fcl.authz,
-        authorizations: [fcl.authz],
-        limit: 100
-      });
-
-      // Wait for transaction to be sealed
-      const sealedTx = await fcl.tx(txId).onceSealed();
-      
-      log(`Real Flow Payment Transaction Created:`, 'flow-agent');
-      log(`  Transaction ID: ${txId}`, 'flow-agent');
-      log(`  Status: ${sealedTx.status}`, 'flow-agent');
-      log(`  From Wallet: ${userAddress} (via AI Agent)`, 'flow-agent');
-      log(`  To: Restaurant`, 'flow-agent');
-      log(`  Amount: ${amount} FLOW`, 'flow-agent');
-      log(`  Order ID: ${orderId}`, 'flow-agent');
-      log(`  Testnet Explorer: https://testnet.flowdiver.io/tx/${txId}`, 'flow-agent');
-      
+    // Create real Flow blockchain transaction for payment
+    const txId = await createRealPaymentTransaction(userAddress, amount, orderId);
+    
+    if (txId) {
       return txId;
-    } catch (flowError) {
-      log(`Flow payment transaction failed, using development mode: ${flowError}`, 'flow-agent');
-      
-      // Fallback for development
-      const blockInfo = await fcl.send([fcl.getBlock(true)]).then(fcl.decode);
-      const devPaymentId = `0xdev${userAddress.slice(2, 8)}${blockInfo.height.toString(16).padStart(8, '0')}${Date.now().toString(16).slice(-8)}`;
-      
-      log(`Development Payment ID: ${devPaymentId}`, 'flow-agent');
-      log(`  Amount: ${amount} FLOW`, 'flow-agent');
-      log(`  Order ID: ${orderId}`, 'flow-agent');
-      log(`  Note: This is a development transaction, not on actual blockchain`, 'flow-agent');
-      
-      return devPaymentId;
+    } else {
+      throw new Error('Failed to create real Flow payment transaction');
     }
   } catch (error) {
     log(`Agent payment failed: ${error}`, 'flow-error');
