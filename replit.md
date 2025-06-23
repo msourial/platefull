@@ -52,6 +52,14 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 - **Conversation Management**: State-based conversation tracking
 - **Feature Parity**: All Telegram bot features replicated for Instagram
 
+### PYUSD Stablecoin Integration ✓ (January 2025)
+- **Complete Payment Integration**: Added PYUSD (PayPal USD) as fourth payment option in Telegram bot
+- **Ethereum Sepolia Testnet**: Full integration with PYUSD stablecoin contract on Ethereum testnet
+- **1% Loyalty Cashback**: Automatic PYUSD rewards system with 1% cashback in PYUSD tokens
+- **Gas-Optimized Transfers**: Efficient cross-border payment processing with minimal fees
+- **Comprehensive Validation**: Ethereum address validation and transaction verification
+- **Payment Flow Integration**: Seamless wallet address input and payment processing in conversation flow
+
 ### Critical Bug Fixes (January 2025) ✓
 - **Cart Accumulation**: Fixed duplicate items persisting across conversation resets
 - **Customization Errors**: Resolved undefined orderId variable in order item updates

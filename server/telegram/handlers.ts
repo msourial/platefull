@@ -117,6 +117,11 @@ export async function handleIncomingMessage(bot: TelegramBot, msg: TelegramBot.M
       await processPaymentSelection(bot, msg, telegramUser, conversation);
       break;
       
+    case 'pyusd_wallet_address':
+      // Process PYUSD wallet address
+      await processPyusdWalletAddress(bot, msg, telegramUser, conversation);
+      break;
+      
     case 'order_confirmation':
       // Process final confirmation
       await processOrderConfirmation(bot, msg, telegramUser, conversation);
@@ -3241,7 +3246,16 @@ async function showFinalOrderSummary(
     messageText += `Pickup: No fee\n`;
   }
   
-  messageText += `Payment Method: ${order.paymentMethod === 'crypto' ? 'Coinbase (Cryptocurrency)' : 'Cash on Delivery/Pickup'}\n\n`;
+  let paymentMethodText = 'Cash on Delivery/Pickup';
+  if (order.paymentMethod === 'crypto') {
+    paymentMethodText = 'Coinbase (Cryptocurrency)';
+  } else if (order.paymentMethod === 'flow') {
+    paymentMethodText = 'Flow Blockchain';
+  } else if (order.paymentMethod === 'pyusd') {
+    paymentMethodText = 'PYUSD Stablecoin';
+  }
+  
+  messageText += `Payment Method: ${paymentMethodText}\n\n`;
   messageText += `*Total: $${total.toFixed(2)}*`;
   
   await bot.sendMessage(chatId, messageText, {
@@ -3394,6 +3408,134 @@ async function processAgentAuthorization(
         [{ text: "💳 Manual Payment", callback_data: "manual_flow_address" }],
         [{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]
       ])
+    );
+  }
+}
+
+async function processPyusdWalletAddress(
+  bot: TelegramBot,
+  msg: TelegramBot.Message,
+  telegramUser: any,
+  conversation: any
+) {
+  try {
+    const walletAddress = msg.text?.trim();
+    
+    if (!walletAddress) {
+      await bot.sendMessage(
+        msg.chat.id,
+        "Please enter a valid Ethereum wallet address to proceed with PYUSD payment.",
+        createInlineKeyboard([[{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]])
+      );
+      return;
+    }
+
+    // Validate Ethereum address format
+    const { verifyPyusdAddress } = await import('../services/pyusd');
+    const isValidAddress = await verifyPyusdAddress(walletAddress);
+    
+    if (!isValidAddress) {
+      await bot.sendMessage(
+        msg.chat.id,
+        "❌ Invalid Ethereum address format. Please enter a valid address (starting with 0x followed by 40 hexadecimal characters).",
+        createInlineKeyboard([[{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]])
+      );
+      return;
+    }
+
+    // Get active order
+    const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+    
+    if (!activeOrder) {
+      await bot.sendMessage(
+        msg.chat.id,
+        "Your order seems to have expired. Please start a new order.",
+        createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
+      );
+      return;
+    }
+
+    // Get payment details from conversation context
+    const pyusdAmount = conversation.context.pyusdAmount;
+    const totalUSD = conversation.context.totalUSD;
+
+    await bot.sendMessage(
+      msg.chat.id,
+      `💲 *Processing PYUSD Payment...*\n\n` +
+      `Wallet: ${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}\n` +
+      `Amount: ${pyusdAmount.toFixed(4)} PYUSD ($${totalUSD.toFixed(2)} USD)\n\n` +
+      `Processing payment on Ethereum Sepolia testnet...`,
+      { parse_mode: 'Markdown' }
+    );
+
+    // Process PYUSD payment
+    const { processPyusdPayment, createPyusdOrder, awardPyusdLoyalty } = await import('../services/pyusd');
+    const paymentTxId = await processPyusdPayment(pyusdAmount, walletAddress, activeOrder.id);
+
+    if (paymentTxId) {
+      // Create blockchain order record
+      const pyusdOrderTxId = await createPyusdOrder({
+        orderId: activeOrder.id,
+        customerAddress: walletAddress,
+        items: activeOrder.orderItems.map(item => ({
+          name: item.menuItem.name,
+          price: parseFloat(item.price.toString()),
+          quantity: item.quantity
+        })),
+        totalAmount: totalUSD
+      });
+
+      // Award 1% PYUSD loyalty rewards
+      const loyaltyAmount = totalUSD * 0.01; // 1% cashback in PYUSD
+      await awardPyusdLoyalty(walletAddress, loyaltyAmount, activeOrder.id);
+
+      // Update order with payment info
+      await storage.updateOrder(activeOrder.id, {
+        paymentMethod: 'pyusd',
+        paymentStatus: 'completed'
+      });
+
+      await bot.sendMessage(
+        msg.chat.id,
+        `✅ *PYUSD Payment Successful!*\n\n` +
+        `💳 *Transaction ID:* ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
+        `💰 *Amount:* ${pyusdAmount.toFixed(4)} PYUSD ($${totalUSD.toFixed(2)} USD)\n` +
+        `🎁 *Loyalty Reward:* ${loyaltyAmount.toFixed(4)} PYUSD (1% cashback)\n\n` +
+        `Your order has been placed successfully with PYUSD!\n\n` +
+        `We'll notify you when your order is ready for ${activeOrder.isDelivery ? 'delivery' : 'pickup'}.`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📋 View Order Details", callback_data: "view_order" }],
+              [{ text: "🍔 Order Again", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
+
+      // Reset conversation state
+      await storage.updateConversation(conversation.id, {
+        state: 'order_completed',
+        context: { pyusdWalletAddress: walletAddress }
+      });
+
+    } else {
+      await bot.sendMessage(
+        msg.chat.id,
+        "❌ PYUSD payment failed. This could be due to insufficient balance or network issues.",
+        createInlineKeyboard([
+          [{ text: "🔄 Try Again", callback_data: "payment_method:pyusd" }],
+          [{ text: "⬅️ Other Payment Options", callback_data: "checkout" }]
+        ])
+      );
+    }
+  } catch (error) {
+    log(`Error processing PYUSD wallet address: ${error}`, 'telegram-error');
+    await bot.sendMessage(
+      msg.chat.id,
+      "Sorry, there was an issue processing your PYUSD payment. Please try another payment method.",
+      createInlineKeyboard([[{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]])
     );
   }
 }
