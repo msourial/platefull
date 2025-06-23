@@ -154,14 +154,15 @@ COINBASE_COMMERCE_API_KEY=...
 ✅ Multi-platform conversational AI (Telegram + Instagram)
 ✅ Personalized recommendation engine
 ✅ Flow Agent Kit blockchain integration
-✅ Crypto payment capabilities (Coinbase + Flow wallet)
-✅ NFT loyalty program foundation
+✅ Crypto payment capabilities (Coinbase + Flow wallet + PYUSD)
+✅ BPTS fungible token loyalty system with full API integration
 ✅ Complete web dashboard interface
 ✅ Authentic Boustan menu integration
 ✅ Telegram bot Flow payment integration with proper conversation flow
 ✅ Flow AI agent automated payment system with spending authorization
 ✅ Dynamic payment UI showing manual vs automated options
 ✅ Testnet integration for safe AI agent spending testing
+✅ REST API endpoints for BPTS balance, transactions, transfers, and redemption
 
 ## Next Steps
 - Deploy smart contracts for production Flow integration
