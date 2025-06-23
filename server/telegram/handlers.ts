@@ -62,6 +62,14 @@ export async function handleIncomingMessage(bot: TelegramBot, msg: TelegramBot.M
     });
   }
 
+  // Handle restart commands - reset conversation to initial state
+  if (msg.text === '/start' || msg.text.toLowerCase() === 'start' || msg.text.toLowerCase() === 'restart' || msg.text.toLowerCase() === 'begin') {
+    conversation = await storage.updateConversation(conversation.id, {
+      state: 'initial',
+      context: {}
+    });
+  }
+
   // Process the message based on conversation state
   switch (conversation.state) {
     case 'initial':

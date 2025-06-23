@@ -7,6 +7,7 @@ import { log } from '../vite';
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
 let bot: TelegramBot | null = null;
+let isInitialized = false;
 
 export const initBot = () => {
   if (!token) {
@@ -14,10 +15,17 @@ export const initBot = () => {
     return null;
   }
 
+  // Prevent multiple initializations
+  if (isInitialized) {
+    log('Telegram bot already initialized, skipping...', 'telegram');
+    return bot;
+  }
+
   try {
     // Create a new bot instance with polling enabled
     log('Initializing Telegram bot...', 'telegram');
     bot = new TelegramBot(token, { polling: true });
+    isInitialized = true;
 
     // Listen for incoming messages
     bot.on('message', async (msg) => {
