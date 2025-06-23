@@ -52,6 +52,13 @@ export async function createRealAgentAuthorization(
       }
     `;
 
+    // Get current sequence number for the service account
+    const accountResponse = await fetch(`${FLOW_API_BASE}/v1/accounts/${SERVICE_ADDRESS}?expand=keys`);
+    const accountData = await accountResponse.json();
+    const sequenceNumber = parseInt(accountData.keys?.[0]?.sequence_number || "0");
+
+    log(`Account data: ${JSON.stringify(accountData, null, 2)}`, 'flow-debug');
+
     // Prepare transaction payload with correct Flow REST API format
     const transaction = {
       script: Buffer.from(script, 'utf8').toString('base64'),
@@ -77,12 +84,14 @@ export async function createRealAgentAuthorization(
       gas_limit: "1000",
       proposal_key: {
         address: SERVICE_ADDRESS,
-        key_index: 0,
-        sequence_number: Math.floor(Date.now() / 1000)
+        key_index: "0",
+        sequence_number: (sequenceNumber + 1).toString()
       },
       payer: SERVICE_ADDRESS,
       authorizers: [SERVICE_ADDRESS]
     };
+
+    log(`Transaction payload: ${JSON.stringify(transaction, null, 2)}`, 'flow-debug');
 
     // Submit transaction to Flow testnet
     const response = await fetch(`${FLOW_API_BASE}/v1/transactions`, {
@@ -159,6 +168,11 @@ export async function createRealPaymentTransaction(
       }
     `;
 
+    // Get current sequence number for the service account
+    const accountResponse = await fetch(`${FLOW_API_BASE}/v1/accounts/${SERVICE_ADDRESS}`);
+    const accountData = await accountResponse.json();
+    const sequenceNumber = accountData.keys?.[0]?.sequence_number || 0;
+
     // Prepare transaction payload with correct Flow REST API format
     const transaction = {
       script: Buffer.from(script, 'utf8').toString('base64'),
@@ -185,7 +199,7 @@ export async function createRealPaymentTransaction(
       proposal_key: {
         address: SERVICE_ADDRESS,
         key_index: 0,
-        sequence_number: Math.floor(Date.now() / 1000)
+        sequence_number: sequenceNumber + 1
       },
       payer: SERVICE_ADDRESS,
       authorizers: [SERVICE_ADDRESS]
