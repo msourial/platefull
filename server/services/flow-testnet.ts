@@ -30,9 +30,10 @@ export async function createRealAgentAuthorization(
     }
 
     // Get current block data for sequence number
-    const blockResponse = await fetch(`${FLOW_API_BASE}/v1/blocks?height=sealed`);
-    const blockData = await blockResponse.json();
-    const currentHeight = blockData[0]?.height || 0;
+    const authBlockResponse = await fetch(`${FLOW_API_BASE}/v1/blocks?height=sealed`);
+    const authBlockData = await authBlockResponse.json();
+    const currentHeight = authBlockData[0]?.height || 0;
+    const referenceBlockId = authBlockData[0]?.id || "0000000000000000000000000000000000000000000000000000000000000000";
 
     // Create transaction script with on-chain events
     const script = `
@@ -53,22 +54,29 @@ export async function createRealAgentAuthorization(
       }
     `;
 
-    // Get current block for reference
-    const blockResponse = await fetch(`${FLOW_API_BASE}/v1/blocks?height=sealed`);
-    const blockData = await blockResponse.json();
-    const referenceBlockId = blockData[0]?.id || "0000000000000000000000000000000000000000000000000000000000000000";
-
-    // Prepare transaction payload with correct Flow REST API format
+    // Prepare transaction payload with correct Flow REST API format - arguments must be base64 encoded
     const transaction = {
-      script: script,
+      script: Buffer.from(script, 'utf8').toString('base64'),
       arguments: [
-        { type: "Address", value: userAddress },
-        { type: "Address", value: agentAddress },
-        { type: "UFix64", value: spendingLimit.toFixed(8) },
-        { type: "UFix64", value: durationHours.toString() }
+        Buffer.from(JSON.stringify({
+          type: "Address",
+          value: userAddress
+        })).toString('base64'),
+        Buffer.from(JSON.stringify({
+          type: "Address", 
+          value: agentAddress
+        })).toString('base64'),
+        Buffer.from(JSON.stringify({
+          type: "UFix64",
+          value: spendingLimit.toFixed(8)
+        })).toString('base64'),
+        Buffer.from(JSON.stringify({
+          type: "UFix64",
+          value: durationHours.toString()
+        })).toString('base64')
       ],
       reference_block_id: referenceBlockId,
-      gas_limit: 1000,
+      gas_limit: "1000",
       proposal_key: {
         address: SERVICE_ADDRESS,
         key_index: parseInt(SERVICE_KEY_ID),
@@ -157,14 +165,26 @@ export async function createRealPaymentTransaction(
     // Get reference block ID
     const referenceBlockId = blockData[0]?.id || "0000000000000000000000000000000000000000000000000000000000000000";
 
-    // Prepare transaction payload with proper Flow REST API format
+    // Prepare transaction payload with correct Flow REST API format - arguments must be base64 encoded
     const transaction = {
-      script: Buffer.from(script).toString('base64'),
+      script: Buffer.from(script, 'utf8').toString('base64'),
       arguments: [
-        Buffer.from(JSON.stringify({ type: "Address", value: fromAddress })).toString('base64'),
-        Buffer.from(JSON.stringify({ type: "Address", value: toAddress })).toString('base64'),
-        Buffer.from(JSON.stringify({ type: "UFix64", value: amount.toFixed(8) })).toString('base64'),
-        Buffer.from(JSON.stringify({ type: "UInt64", value: orderId.toString() })).toString('base64')
+        Buffer.from(JSON.stringify({
+          type: "Address",
+          value: fromAddress
+        })).toString('base64'),
+        Buffer.from(JSON.stringify({
+          type: "Address",
+          value: toAddress
+        })).toString('base64'),
+        Buffer.from(JSON.stringify({
+          type: "UFix64",
+          value: amount.toFixed(8)
+        })).toString('base64'),
+        Buffer.from(JSON.stringify({
+          type: "UInt64",
+          value: orderId.toString()
+        })).toString('base64')
       ],
       reference_block_id: referenceBlockId,
       gas_limit: "1000",
