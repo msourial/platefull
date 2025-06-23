@@ -3076,10 +3076,11 @@ async function processFlowWalletAddress(
       await bot.sendMessage(
         chatId,
         `✅ *Payment Successful!*\n\n` +
-        `🌊 Flow Transaction: ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
-        `📦 Order Transaction: ${flowOrderTxId?.slice(0, 8)}...${flowOrderTxId?.slice(-6)}\n` +
+        `🌊 Development Transaction: ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
+        `📦 Order ID: ${flowOrderTxId?.slice(0, 8)}...${flowOrderTxId?.slice(-6)}\n` +
         `🎁 Loyalty Points Earned: ${loyaltyPoints}\n\n` +
-        `Your order has been placed and recorded on the Flow blockchain!\n\n` +
+        `⚠️ *Development Mode:* Simulated blockchain transaction\n` +
+        `Your order has been placed successfully!\n\n` +
         `We'll notify you when your order is ready for ${activeOrder.isDelivery ? 'delivery' : 'pickup'}.`,
         {
           parse_mode: 'Markdown',
@@ -3293,11 +3294,11 @@ async function processAgentAuthorization(
       await bot.sendMessage(
         chatId,
         `✅ *AI Agent Authorized Successfully!*\n\n` +
-        `🔗 *Flow Testnet Transaction:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
+        `🔗 *Development Transaction:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
         `💰 *Spending Limit:* 100 FLOW tokens\n` +
         `⏰ *Valid for:* 24 hours\n` +
-        `🌐 *Testnet Explorer:* https://testnet.flowdiver.io/tx/${authTxId}\n\n` +
-        `The AI agent can now process your Flow payments automatically with real testnet transactions!`,
+        `⚠️ *Note:* Development mode - simulated blockchain transaction\n\n` +
+        `The AI agent can now process your Flow payments automatically in development mode!`,
         {
           parse_mode: 'Markdown',
           reply_markup: {

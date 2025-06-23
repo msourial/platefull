@@ -50,12 +50,12 @@ export async function createLogTransaction(message: string, userAddress: string)
     const paddingLength = 64 - baseComponents.length;
     const txId = `0x${baseComponents}${'0'.repeat(Math.max(0, paddingLength))}`.slice(0, 66); // Ensure exactly 66 chars (0x + 64 hex chars)
     
-    log(`Flow Testnet Transaction Created:`, 'flow-real');
+    log(`Development Mode Transaction Created:`, 'flow-real');
     log(`  Transaction ID: ${txId}`, 'flow-real');
     log(`  Message: ${message}`, 'flow-real');
     log(`  User Address: ${userAddress}`, 'flow-real');
-    log(`  Testnet Explorer: https://testnet.flowdiver.io/tx/${txId}`, 'flow-real');
-    log(`  FlowScan: https://testnet.flowscan.org/transaction/${txId}`, 'flow-real');
+    log(`  Status: DEVELOPMENT MODE - Not on actual blockchain`, 'flow-real');
+    log(`  Note: This is a simulated transaction for development testing`, 'flow-real');
     
     return txId;
   } catch (error) {
