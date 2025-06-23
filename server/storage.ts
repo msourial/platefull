@@ -752,6 +752,24 @@ export const storage = {
     });
   },
 
+  // Order deletion method
+  deleteOrder: async (orderId: number) => {
+    try {
+      // First delete all order items
+      await db.delete(schema.orderItems).where(eq(schema.orderItems.orderId, orderId));
+      
+      // Then delete the order itself
+      const [deletedOrder] = await db.delete(schema.orders)
+        .where(eq(schema.orders.id, orderId))
+        .returning();
+      
+      return deletedOrder;
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      throw error;
+    }
+  },
+
   // Admin methods
   getAllOrders: async (status?: string, limit: number = 100) => {
     if (status) {

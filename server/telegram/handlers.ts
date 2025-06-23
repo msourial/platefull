@@ -62,8 +62,16 @@ export async function handleIncomingMessage(bot: TelegramBot, msg: TelegramBot.M
     });
   }
 
-  // Handle restart commands - reset conversation to initial state
+  // Handle restart commands - reset conversation to initial state and clear cart
   if (msg.text === '/start' || msg.text.toLowerCase() === 'start' || msg.text.toLowerCase() === 'restart' || msg.text.toLowerCase() === 'begin') {
+    // Clear any existing active order to start fresh
+    const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+    if (activeOrder) {
+      // Delete the order and all its items to ensure clean start
+      await storage.deleteOrder(activeOrder.id);
+      log(`Cleared active order ${activeOrder.id} for fresh start`, 'telegram');
+    }
+    
     conversation = await storage.updateConversation(conversation.id, {
       state: 'initial',
       context: {}
