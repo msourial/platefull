@@ -1598,9 +1598,10 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             totalAmount: totalUSD
           });
 
-          // Award loyalty points
-          const loyaltyPoints = Math.floor(totalUSD * 10);
-          await awardLoyaltyPoints(userWalletAddress, loyaltyPoints, activeOrder.id);
+          // Award BPTS loyalty tokens
+          const { mintLoyaltyTokens, calculateLoyaltyPoints } = await import('../services/flow-loyalty-token');
+          const loyaltyTokens = calculateLoyaltyPoints(totalUSD, totalUSD >= 50);
+          await mintLoyaltyTokens(userWalletAddress, loyaltyTokens, activeOrder.id, 'order');
 
           // Update order with payment info
           await storage.updateOrder(activeOrder.id, {
@@ -1613,7 +1614,7 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             `✅ *Payment Successful!*\n\n` +
             `🤖 *AI Agent Payment:* ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
             `💰 *Amount:* ${flowAmount.toFixed(4)} FLOW ($${totalUSD.toFixed(2)} USD)\n` +
-            `🎁 *Loyalty Points Earned:* ${loyaltyPoints}\n\n` +
+            `🪙 *BPTS Tokens Earned:* ${loyaltyTokens} BPTS${totalUSD >= 50 ? ' (1.5x Bonus!)' : ''}\n\n` +
             `Your order has been placed and processed automatically via AI agent!\n\n` +
             `We'll notify you when your order is ready for ${activeOrder.isDelivery ? 'delivery' : 'pickup'}.`,
             {
