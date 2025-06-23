@@ -35,6 +35,12 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 - **Conversation Management**: State-based conversation tracking
 - **Feature Parity**: All Telegram bot features replicated for Instagram
 
+### Critical Bug Fixes (January 2025) ✓
+- **Cart Accumulation**: Fixed duplicate items persisting across conversation resets
+- **Customization Errors**: Resolved undefined orderId variable in order item updates
+- **Flow Wallet URL**: Fixed localhost URL issue in Telegram inline buttons (manual entry fallback)
+- **Misplaced AI Questions**: Restricted follow-up questions to dietary recommendations only
+
 ## Architecture
 
 ### Platform Support

@@ -2169,8 +2169,8 @@ async function processNaturalLanguageInput(
           );
         }
         
-        // If we have follow-up questions, create buttons for them
-        if (response.followUpQuestions && response.followUpQuestions.length > 0) {
+        // Only show follow-up questions for dietary recommendations, not during other flows
+        if (response.followUpQuestions && response.followUpQuestions.length > 0 && response.intent === "dietary_recommendation") {
           // Format the questions as buttons with better prompts
           const questionKeyboard = response.followUpQuestions.map((question, index) => {
             // Limit question length for button display
@@ -2783,22 +2783,21 @@ async function handleFlowWalletConnection(
     // Generate unique session ID for this payment
     const sessionId = `flow_payment_${Date.now()}_${telegramUser.id}`;
     
-    // Create Flow wallet connection URL for browser extension
-    const walletConnectionUrl = `http://localhost:5000/api/flow/connect?session=${sessionId}&telegram_id=${telegramUser.id}&chat_id=${chatId}`;
-    
+    // For Flow wallet connection, we'll use manual address entry since localhost URLs don't work in Telegram
     await bot.sendMessage(
       chatId,
       `🌊 *Connect Your Flow Wallet*\n\n` +
-      `Click the link below to open your Flow wallet browser extension and authorize this payment:\n\n` +
-      `[🔗 Open Flow Wallet Extension](${walletConnectionUrl})\n\n` +
-      `📱 *Alternative:* If the link doesn't work, you can manually enter your Flow wallet address below.\n\n` +
-      `Your address should start with "0x" (e.g., 0x1234567890abcdef)`,
+      `To complete your Flow payment, please enter your Flow wallet address.\n\n` +
+      `📱 *How to find your address:*\n` +
+      `• Open your Flow wallet browser extension\n` +
+      `• Copy your wallet address (starts with "0x")\n` +
+      `• Paste it using the button below\n\n` +
+      `Example: 0x1234567890abcdef`,
       {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: "🌐 Open Wallet in Browser", url: walletConnectionUrl }],
-            [{ text: "⌨️ Enter Address Manually", callback_data: "manual_flow_address" }],
+            [{ text: "⌨️ Enter Flow Wallet Address", callback_data: "manual_flow_address" }],
             [{ text: "⬅️ Cancel Payment", callback_data: "checkout" }]
           ]
         }
@@ -2810,8 +2809,7 @@ async function handleFlowWalletConnection(
       state: 'flow_wallet_connection',
       context: { 
         ...conversation.context, 
-        sessionId: sessionId,
-        walletConnectionUrl: walletConnectionUrl
+        sessionId: sessionId
       }
     });
     
