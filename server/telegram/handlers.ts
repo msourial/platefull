@@ -1460,6 +1460,30 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       await processFlowWalletAddress(bot, chatId, telegramUser, conversation, params[0]);
       break;
       
+    case 'manual_flow_address':
+      await bot.sendMessage(
+        chatId,
+        `🌊 *Enter Your Flow Wallet Address*\n\n` +
+        `Please enter your Flow wallet address to complete the payment.\n\n` +
+        `Your Flow wallet address should start with "0x" followed by 16 hexadecimal characters.\n\n` +
+        `Example: 0x1234567890abcdef`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "⬅️ Cancel Payment", callback_data: "checkout" }]
+            ]
+          }
+        }
+      );
+      
+      // Update conversation state to expect wallet address
+      await storage.updateConversation(conversation.id, {
+        state: 'awaiting_flow_address',
+        context: { ...conversation.context }
+      });
+      break;
+      
     default:
       await bot.sendMessage(chatId, "I'm not sure what to do with that selection. Let me show you the menu.");
       await sendMenuCategories(chatId);
@@ -2746,27 +2770,50 @@ async function handleFlowWalletConnection(
   telegramUser: any,
   conversation: any
 ) {
-  await bot.sendMessage(
-    chatId,
-    `🌊 *Connect Your Flow Wallet*\n\n` +
-    `Please enter your Flow wallet address to complete the payment.\n\n` +
-    `Your Flow wallet address should start with "0x" followed by 16 hexadecimal characters.\n\n` +
-    `Example: 0x1234567890abcdef`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "⬅️ Cancel Payment", callback_data: "checkout" }]
-        ]
+  try {
+    // Generate unique session ID for this payment
+    const sessionId = `flow_payment_${Date.now()}_${telegramUser.id}`;
+    
+    // Create Flow wallet connection URL for browser extension
+    const walletConnectionUrl = `http://localhost:5000/api/flow/connect?session=${sessionId}&telegram_id=${telegramUser.id}&chat_id=${chatId}`;
+    
+    await bot.sendMessage(
+      chatId,
+      `🌊 *Connect Your Flow Wallet*\n\n` +
+      `Click the link below to open your Flow wallet browser extension and authorize this payment:\n\n` +
+      `[🔗 Open Flow Wallet Extension](${walletConnectionUrl})\n\n` +
+      `📱 *Alternative:* If the link doesn't work, you can manually enter your Flow wallet address below.\n\n` +
+      `Your address should start with "0x" (e.g., 0x1234567890abcdef)`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "🌐 Open Wallet in Browser", url: walletConnectionUrl }],
+            [{ text: "⌨️ Enter Address Manually", callback_data: "manual_flow_address" }],
+            [{ text: "⬅️ Cancel Payment", callback_data: "checkout" }]
+          ]
+        }
       }
-    }
-  );
-  
-  // Update conversation state to expect wallet address
-  await storage.updateConversation(conversation.id, {
-    state: 'awaiting_flow_address',
-    context: { ...conversation.context }
-  });
+    );
+    
+    // Store session information
+    await storage.updateConversation(conversation.id, {
+      state: 'flow_wallet_connection',
+      context: { 
+        ...conversation.context, 
+        sessionId: sessionId,
+        walletConnectionUrl: walletConnectionUrl
+      }
+    });
+    
+  } catch (error) {
+    log(`Error handling Flow wallet connection: ${error}`, 'telegram-error');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue setting up the wallet connection. Please try again.",
+      createInlineKeyboard([[{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]])
+    );
+  }
 }
 
 async function processFlowWalletAddress(

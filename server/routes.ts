@@ -246,6 +246,273 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Flow wallet browser extension connection endpoint
+  app.get("/api/flow/connect", async (req, res) => {
+    try {
+      const { session, telegram_id, chat_id } = req.query;
+      
+      if (!session || !telegram_id || !chat_id) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      // Create HTML page for Flow wallet connection
+      const walletConnectionPage = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Connect Flow Wallet - Boustan</title>
+          <script src="https://cdn.jsdelivr.net/npm/@onflow/fcl@1.4.0/dist/fcl.min.js"></script>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              max-width: 600px; 
+              margin: 50px auto; 
+              padding: 20px;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              text-align: center;
+            }
+            .container {
+              background: rgba(255, 255, 255, 0.1);
+              padding: 30px;
+              border-radius: 20px;
+              backdrop-filter: blur(10px);
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+            .logo { font-size: 2.5em; margin-bottom: 20px; }
+            button { 
+              background: #00d4aa; 
+              color: white; 
+              border: none; 
+              padding: 15px 30px; 
+              font-size: 18px; 
+              border-radius: 10px; 
+              cursor: pointer;
+              margin: 10px;
+              transition: all 0.3s ease;
+            }
+            button:hover { 
+              background: #00b894; 
+              transform: translateY(-2px);
+              box-shadow: 0 5px 15px rgba(0, 212, 170, 0.4);
+            }
+            button:disabled { 
+              background: #ccc; 
+              cursor: not-allowed; 
+              transform: none;
+              box-shadow: none;
+            }
+            .status { 
+              margin: 20px 0; 
+              padding: 15px; 
+              border-radius: 10px; 
+              font-weight: bold;
+            }
+            .success { background: rgba(0, 255, 0, 0.2); }
+            .error { background: rgba(255, 0, 0, 0.2); }
+            .info { background: rgba(0, 212, 170, 0.2); }
+            .wallet-info {
+              background: rgba(255, 255, 255, 0.1);
+              padding: 15px;
+              border-radius: 10px;
+              margin: 20px 0;
+              word-break: break-all;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="logo">🌊 Flow Wallet Connection</div>
+            <h2>Connect Your Flow Wallet to Complete Payment</h2>
+            <p>Session: ${session}</p>
+            
+            <div id="status" class="status info">Ready to connect your Flow wallet</div>
+            
+            <button id="connectBtn" onclick="connectWallet()">
+              Connect Flow Wallet
+            </button>
+            
+            <div id="walletInfo" class="wallet-info" style="display: none;">
+              <strong>Connected Wallet:</strong>
+              <div id="walletAddress"></div>
+            </div>
+            
+            <button id="confirmBtn" onclick="confirmPayment()" style="display: none;">
+              Confirm Payment
+            </button>
+            
+            <div style="margin-top: 30px;">
+              <p><small>This will open your Flow wallet browser extension</small></p>
+              <p><small>Make sure you have a Flow wallet extension installed</small></p>
+            </div>
+          </div>
+
+          <script>
+            // Configure FCL for testnet
+            fcl.config({
+              "accessNode.api": "https://rest-testnet.onflow.org",
+              "discovery.wallet": "https://fcl-discovery.onflow.org/testnet/authn"
+            });
+
+            let userAddress = null;
+
+            async function connectWallet() {
+              try {
+                document.getElementById('status').textContent = 'Connecting to Flow wallet...';
+                document.getElementById('status').className = 'status info';
+                document.getElementById('connectBtn').disabled = true;
+
+                // Authenticate with Flow wallet
+                const user = await fcl.authenticate();
+                
+                if (user && user.addr) {
+                  userAddress = user.addr;
+                  document.getElementById('status').textContent = 'Wallet connected successfully!';
+                  document.getElementById('status').className = 'status success';
+                  document.getElementById('walletAddress').textContent = userAddress;
+                  document.getElementById('walletInfo').style.display = 'block';
+                  document.getElementById('confirmBtn').style.display = 'inline-block';
+                  document.getElementById('connectBtn').style.display = 'none';
+                } else {
+                  throw new Error('Failed to get wallet address');
+                }
+              } catch (error) {
+                console.error('Wallet connection error:', error);
+                document.getElementById('status').textContent = 'Failed to connect wallet: ' + error.message;
+                document.getElementById('status').className = 'status error';
+                document.getElementById('connectBtn').disabled = false;
+              }
+            }
+
+            async function confirmPayment() {
+              if (!userAddress) {
+                alert('Please connect your wallet first');
+                return;
+              }
+
+              try {
+                document.getElementById('status').textContent = 'Confirming payment...';
+                document.getElementById('status').className = 'status info';
+                document.getElementById('confirmBtn').disabled = true;
+
+                // Send wallet address back to Telegram bot
+                const response = await fetch('/api/flow/wallet-connected', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    session: '${session}',
+                    telegram_id: '${telegram_id}',
+                    chat_id: '${chat_id}',
+                    wallet_address: userAddress
+                  })
+                });
+
+                if (response.ok) {
+                  document.getElementById('status').textContent = 'Payment confirmed! You can close this window and return to Telegram.';
+                  document.getElementById('status').className = 'status success';
+                  
+                  // Auto-close after 3 seconds
+                  setTimeout(() => {
+                    window.close();
+                  }, 3000);
+                } else {
+                  throw new Error('Failed to confirm payment');
+                }
+              } catch (error) {
+                console.error('Payment confirmation error:', error);
+                document.getElementById('status').textContent = 'Failed to confirm payment: ' + error.message;
+                document.getElementById('status').className = 'status error';
+                document.getElementById('confirmBtn').disabled = false;
+              }
+            }
+
+            // Auto-connect if wallet is already authenticated
+            window.addEventListener('load', async () => {
+              try {
+                const user = await fcl.currentUser.snapshot();
+                if (user && user.loggedIn && user.addr) {
+                  userAddress = user.addr;
+                  document.getElementById('status').textContent = 'Wallet already connected!';
+                  document.getElementById('status').className = 'status success';
+                  document.getElementById('walletAddress').textContent = userAddress;
+                  document.getElementById('walletInfo').style.display = 'block';
+                  document.getElementById('confirmBtn').style.display = 'inline-block';
+                  document.getElementById('connectBtn').style.display = 'none';
+                }
+              } catch (error) {
+                console.log('No existing wallet connection');
+              }
+            });
+          </script>
+        </body>
+        </html>
+      `;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(walletConnectionPage);
+
+    } catch (error) {
+      log(`Error serving wallet connection page: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to load wallet connection page" });
+    }
+  });
+
+  // Endpoint to handle wallet connection confirmation from browser
+  app.post("/api/flow/wallet-connected", async (req, res) => {
+    try {
+      const { session, telegram_id, chat_id, wallet_address } = req.body;
+      
+      if (!session || !telegram_id || !chat_id || !wallet_address) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      // Verify the wallet address format
+      const { verifyFlowAddress } = await import('./services/flow');
+      const isValidAddress = await verifyFlowAddress(wallet_address);
+      
+      if (!isValidAddress) {
+        return res.status(400).json({ error: "Invalid Flow wallet address" });
+      }
+
+      // Get the Telegram bot instance
+      const { getBot } = await import('./telegram/bot');
+      const bot = getBot();
+
+      // Send confirmation message to Telegram
+      await bot.sendMessage(
+        parseInt(chat_id),
+        `✅ *Wallet Connected Successfully!*\n\n` +
+        `🌊 **Address:** ${wallet_address.slice(0, 8)}...${wallet_address.slice(-6)}\n\n` +
+        `Your Flow wallet is now connected and ready for payment. Processing your order...`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // Process the wallet address as if it was manually entered
+      const { processFlowWalletAddress } = await import('./telegram/handlers');
+      
+      // Get user and conversation data
+      const telegramUser = await storage.getTelegramUserByTelegramId(telegram_id);
+      const conversation = await storage.getConversationByTelegramUserId(telegramUser?.id);
+      
+      if (telegramUser && conversation) {
+        // Process the wallet address for payment
+        setTimeout(async () => {
+          await processFlowWalletAddress(bot, parseInt(chat_id), telegramUser, conversation, wallet_address);
+        }, 1000);
+      }
+
+      res.json({ success: true, message: "Wallet connected successfully" });
+
+    } catch (error) {
+      log(`Error processing wallet connection: ${error}`, "flow-error");
+      res.status(500).json({ error: "Failed to process wallet connection" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize bots and Flow connection
