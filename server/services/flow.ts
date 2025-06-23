@@ -398,7 +398,7 @@ export async function authorizeAgentSpending(
       } else {
         throw new Error('Failed to create real Flow transaction');
       }
-    } catch (flowError) {
+    } catch (flowError: any) {
       log(`Real Flow transaction failed: ${flowError.toString()}`, 'flow-error');
       
       // Fallback for development - generate a realistic testnet-style ID
