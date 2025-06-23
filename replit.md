@@ -27,11 +27,11 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 - **Clear Development Status**: All transactions clearly marked as development mode while maintaining full functionality
 
 ### Flow AI Agent Authorization System ✓ (Development Mode)
+- **Restaurant Wallet Integration**: All payments properly directed to restaurant wallet `0x0000000000000000000000020C09Dd1F4140940f`
 - **Comprehensive Transaction Logging**: AI agent creates detailed transaction records with realistic Flow-compatible IDs
 - **Real Testnet Integration**: Connects to Flow testnet, retrieves current block data for authentic transaction context
 - **Automated Payment Processing**: AI agent handles complete payment flow with proper wallet validation
-- **Spending Authorization**: Users delegate spending rights with configurable limits and duration
-- **Telegram Integration**: Seamless automated payment experience with clear development status indicators
+- **End-to-End Telegram Integration**: Seamless ordering flow from menu selection to automated payment completion
 - **Transaction Format Validation**: All transactions validated against Flow REST API specification
 - **Enhanced Security**: Proper wallet address validation, spending limits, and authorization timeouts
 
