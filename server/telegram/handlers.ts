@@ -2965,14 +2965,17 @@ async function processPaymentSelection(
   
   if (text?.includes('crypto') || text?.includes('coinbase') || text?.includes('bitcoin')) {
     await processPaymentMethod(bot, msg.chat.id, telegramUser, conversation, 'crypto');
+  } else if (text?.includes('flow') || text?.includes('blockchain')) {
+    await processPaymentMethod(bot, msg.chat.id, telegramUser, conversation, 'flow');
   } else if (text?.includes('cash')) {
     await processPaymentMethod(bot, msg.chat.id, telegramUser, conversation, 'cash');
   } else {
     await bot.sendMessage(
       msg.chat.id,
-      "I didn't understand your payment selection. Please choose from the options below: 💳",
+      "I didn't understand your payment selection. Please choose from the options below:",
       createInlineKeyboard([
         [{ text: "💰 Coinbase (Cryptocurrency)", callback_data: "payment_method:crypto" }],
+        [{ text: "🌊 Pay by Flow", callback_data: "payment_method:flow" }],
         [{ text: "💵 Cash on Delivery/Pickup", callback_data: "payment_method:cash" }]
       ])
     );
