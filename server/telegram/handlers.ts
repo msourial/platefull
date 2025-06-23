@@ -106,6 +106,20 @@ export async function handleIncomingMessage(bot: TelegramBot, msg: TelegramBot.M
       await processOrderConfirmation(bot, msg, telegramUser, conversation);
       break;
       
+    case 'awaiting_flow_address':
+      // Process Flow wallet address input
+      const walletAddress = msg.text?.trim();
+      if (walletAddress && walletAddress.match(/^0x[a-fA-F0-9]{16}$/)) {
+        await processFlowWalletAddress(bot, chatId, telegramUser, conversation, walletAddress);
+      } else {
+        await bot.sendMessage(
+          chatId,
+          "Please enter a valid Flow wallet address (0x followed by 16 hex characters):",
+          createInlineKeyboard([[{ text: "⬅️ Cancel Payment", callback_data: "checkout" }]])
+        );
+      }
+      break;
+      
     default:
       // Handle any other states or reset to initial
       await processNaturalLanguageInput(bot, msg, telegramUser, conversation);
@@ -1430,6 +1444,14 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       await finalizeOrder(bot, chatId, telegramUser, conversation);
       break;
       
+    case 'connect_flow_wallet':
+      await handleFlowWalletConnection(bot, chatId, telegramUser, conversation);
+      break;
+      
+    case 'flow_wallet_connected':
+      await processFlowWalletAddress(bot, chatId, telegramUser, conversation, params[0]);
+      break;
+      
     default:
       await bot.sendMessage(chatId, "I'm not sure what to do with that selection. Let me show you the menu.");
       await sendMenuCategories(chatId);
@@ -2601,6 +2623,7 @@ async function promptPaymentOptions(
     "Please select your payment method: 💳",
     createInlineKeyboard([
       [{ text: "💰 Coinbase (Cryptocurrency)", callback_data: "payment_method:crypto" }],
+      [{ text: "🌊 Pay by Flow", callback_data: "payment_method:flow" }],
       [{ text: "💵 Cash on Delivery/Pickup", callback_data: "payment_method:cash" }]
     ])
   );
@@ -2630,6 +2653,12 @@ async function processPaymentMethod(
     return;
   }
   
+  // Handle Flow payment method
+  if (method === 'flow') {
+    await handleFlowPayment(bot, chatId, telegramUser, conversation, activeOrder);
+    return;
+  }
+  
   // Update order with payment method
   await storage.updateOrder(activeOrder.id, {
     paymentMethod: method
@@ -2642,6 +2671,213 @@ async function processPaymentMethod(
   
   // Show final order summary
   await showFinalOrderSummary(bot, chatId, activeOrder.id);
+}
+
+async function handleFlowPayment(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any,
+  conversation: any,
+  activeOrder: any
+) {
+  try {
+    // Calculate order total
+    let subtotal = 0;
+    for (const item of activeOrder.orderItems) {
+      subtotal += parseFloat(item.price.toString()) * item.quantity;
+    }
+    
+    const deliveryFee = parseFloat(activeOrder.deliveryFee || "0");
+    const total = subtotal + deliveryFee;
+    
+    // Convert USD to FLOW tokens
+    const { usdToFlow } = await import('../services/flow');
+    const flowAmount = usdToFlow(total);
+    
+    await bot.sendMessage(
+      chatId,
+      `🌊 *Flow Blockchain Payment*\n\n` +
+      `Order Total: $${total.toFixed(2)} USD\n` +
+      `Equivalent: ${flowAmount.toFixed(4)} FLOW tokens\n\n` +
+      `To complete your payment, please connect your Flow wallet:`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "🌊 Connect Flow Wallet", callback_data: "connect_flow_wallet" }],
+            [{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]
+          ]
+        }
+      }
+    );
+    
+    // Update conversation state
+    await storage.updateConversation(conversation.id, {
+      state: 'flow_wallet_connection',
+      context: { 
+        ...conversation.context, 
+        paymentMethod: 'flow',
+        flowAmount: flowAmount,
+        totalUSD: total
+      }
+    });
+    
+  } catch (error) {
+    log(`Error handling Flow payment: ${error}`, 'telegram-error');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue processing your Flow payment. Please try a different payment method.",
+      createInlineKeyboard([[{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]])
+    );
+  }
+}
+
+async function handleFlowWalletConnection(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any,
+  conversation: any
+) {
+  await bot.sendMessage(
+    chatId,
+    `🌊 *Connect Your Flow Wallet*\n\n` +
+    `Please enter your Flow wallet address to complete the payment.\n\n` +
+    `Your Flow wallet address should start with "0x" followed by 16 hexadecimal characters.\n\n` +
+    `Example: 0x1234567890abcdef`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "⬅️ Cancel Payment", callback_data: "checkout" }]
+        ]
+      }
+    }
+  );
+  
+  // Update conversation state to expect wallet address
+  await storage.updateConversation(conversation.id, {
+    state: 'awaiting_flow_address',
+    context: { ...conversation.context }
+  });
+}
+
+async function processFlowWalletAddress(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any,
+  conversation: any,
+  address: string
+) {
+  try {
+    // Verify the Flow address
+    const { verifyFlowAddress, processFlowPayment, createFlowOrder, awardLoyaltyPoints } = await import('../services/flow');
+    
+    const isValidAddress = await verifyFlowAddress(address);
+    
+    if (!isValidAddress) {
+      await bot.sendMessage(
+        chatId,
+        "❌ Invalid Flow wallet address. Please enter a valid Flow address (0x followed by 16 hex characters):",
+        createInlineKeyboard([[{ text: "⬅️ Cancel Payment", callback_data: "checkout" }]])
+      );
+      return;
+    }
+    
+    // Get the active order
+    const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
+    
+    if (!activeOrder) {
+      await bot.sendMessage(
+        chatId,
+        "Your order seems to have expired. Please start a new order.",
+        createInlineKeyboard([[{ text: "🍔 Start New Order", callback_data: "menu" }]])
+      );
+      return;
+    }
+    
+    // Process the Flow payment
+    const flowAmount = conversation.context.flowAmount;
+    const totalUSD = conversation.context.totalUSD;
+    
+    await bot.sendMessage(
+      chatId,
+      `🌊 *Processing Flow Payment...*\n\n` +
+      `Wallet: ${address.slice(0, 8)}...${address.slice(-6)}\n` +
+      `Amount: ${flowAmount.toFixed(4)} FLOW ($${totalUSD.toFixed(2)} USD)\n\n` +
+      `Please confirm this payment in your Flow wallet.`,
+      { parse_mode: 'Markdown' }
+    );
+    
+    // Simulate payment processing
+    const paymentTxId = await processFlowPayment(flowAmount, address, activeOrder.id);
+    
+    if (paymentTxId) {
+      // Create blockchain order record
+      const flowOrderTxId = await createFlowOrder({
+        orderId: activeOrder.id,
+        customerAddress: address,
+        items: activeOrder.orderItems.map(item => ({
+          name: item.menuItem.name,
+          price: parseFloat(item.price.toString()),
+          quantity: item.quantity
+        })),
+        totalAmount: totalUSD
+      });
+      
+      // Award loyalty points
+      const loyaltyPoints = Math.floor(totalUSD * 10); // 10 points per dollar
+      await awardLoyaltyPoints(address, loyaltyPoints, activeOrder.id);
+      
+      // Update order with payment info
+      await storage.updateOrder(activeOrder.id, {
+        paymentMethod: 'flow',
+        paymentStatus: 'completed'
+      });
+      
+      await bot.sendMessage(
+        chatId,
+        `✅ *Payment Successful!*\n\n` +
+        `🌊 Flow Transaction: ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
+        `📦 Order Transaction: ${flowOrderTxId?.slice(0, 8)}...${flowOrderTxId?.slice(-6)}\n` +
+        `🎁 Loyalty Points Earned: ${loyaltyPoints}\n\n` +
+        `Your order has been placed and recorded on the Flow blockchain!\n\n` +
+        `We'll notify you when your order is ready for ${activeOrder.isDelivery ? 'delivery' : 'pickup'}.`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📋 View Order Details", callback_data: "view_order" }],
+              [{ text: "🍔 Order Again", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
+      
+      // Reset conversation state
+      await storage.updateConversation(conversation.id, {
+        state: 'order_completed',
+        context: { flowWalletAddress: address }
+      });
+      
+    } else {
+      await bot.sendMessage(
+        chatId,
+        "❌ Payment failed. Please try again or use a different payment method.",
+        createInlineKeyboard([
+          [{ text: "🔄 Retry Flow Payment", callback_data: "payment_method:flow" }],
+          [{ text: "⬅️ Other Payment Options", callback_data: "checkout" }]
+        ])
+      );
+    }
+    
+  } catch (error) {
+    log(`Error processing Flow wallet address: ${error}`, 'telegram-error');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an error processing your Flow payment. Please try again.",
+      createInlineKeyboard([[{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]])
+    );
+  }
 }
 
 async function showFinalOrderSummary(
