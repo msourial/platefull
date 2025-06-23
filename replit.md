@@ -26,6 +26,7 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 - **Currency Conversion**: USD ↔ FLOW token conversion tools
 - **API Endpoints**: RESTful APIs for blockchain operations
 - **Frontend Interface**: Complete wallet management UI (`client/src/pages/FlowWallet.tsx`)
+- **Telegram Integration**: Complete Flow payment option added to Telegram bot checkout ✓
 
 ### Instagram Bot Implementation ✓
 - **Database Schema**: Extended schema for Instagram users and conversations
