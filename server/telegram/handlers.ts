@@ -1126,23 +1126,24 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             
             // No more customization options, proceed to suggest sides
             const category = await storage.getCategoryById(menuItem.categoryId);
+            const orderIdForSuggestions = orderItem.orderId;
             
             if (category) {
               // For main dishes (pitas, wraps, platters), ask about sides
               if (['Pitas', 'Wraps', 'Platters', 'Main Dishes'].includes(category.name)) {
-                await suggestSides(bot, chatId, orderId, menuItem);
+                await suggestSides(bot, chatId, orderIdForSuggestions, menuItem);
                 return;
               }
               
               // For sides, suggest drinks if not already ordered
               if (['Sides', 'Salads'].includes(category.name)) {
-                await suggestDrinks(bot, chatId, orderId);
+                await suggestDrinks(bot, chatId, orderIdForSuggestions);
                 return;
               }
               
               // For drinks, suggest desserts if not already ordered
               if (['Beverages', 'Drinks'].includes(category.name)) {
-                await suggestDesserts(bot, chatId, orderId);
+                await suggestDesserts(bot, chatId, orderIdForSuggestions);
                 return;
               }
             }
