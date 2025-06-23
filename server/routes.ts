@@ -697,6 +697,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // BPTS Loyalty Token endpoints
+  app.get('/api/loyalty/balance/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      const { getLoyaltyBalance, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      
+      if (!validateFlowAddress(address)) {
+        return res.status(400).json({ error: 'Invalid Flow address format' });
+      }
+      
+      const balance = await getLoyaltyBalance(address);
+      res.json({ address, balance, token: 'BPTS' });
+    } catch (error: any) {
+      log(`Error getting BPTS balance: ${error.message}`, 'api-error');
+      res.status(500).json({ error: 'Failed to get BPTS balance' });
+    }
+  });
+
+  app.get('/api/loyalty/transactions/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      const { getLoyaltyTransactionHistory, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      
+      if (!validateFlowAddress(address)) {
+        return res.status(400).json({ error: 'Invalid Flow address format' });
+      }
+      
+      const transactions = await getLoyaltyTransactionHistory(address);
+      res.json({ address, transactions });
+    } catch (error: any) {
+      log(`Error getting BPTS transactions: ${error.message}`, 'api-error');
+      res.status(500).json({ error: 'Failed to get BPTS transactions' });
+    }
+  });
+
+  app.get('/api/loyalty/info', async (req, res) => {
+    try {
+      const { getLoyaltyTokenInfo } = await import('./services/flow-loyalty-token');
+      const tokenInfo = getLoyaltyTokenInfo();
+      res.json(tokenInfo);
+    } catch (error: any) {
+      log(`Error getting BPTS info: ${error.message}`, 'api-error');
+      res.status(500).json({ error: 'Failed to get BPTS info' });
+    }
+  });
+
+  app.post('/api/loyalty/transfer', async (req, res) => {
+    try {
+      const { fromAddress, toAddress, amount } = req.body;
+      const { transferLoyaltyTokens, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      
+      if (!validateFlowAddress(fromAddress) || !validateFlowAddress(toAddress)) {
+        return res.status(400).json({ error: 'Invalid Flow address format' });
+      }
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+      
+      const txHash = await transferLoyaltyTokens(fromAddress, toAddress, amount);
+      res.json({ success: true, txHash, amount, fromAddress, toAddress });
+    } catch (error: any) {
+      log(`Error transferring BPTS: ${error.message}`, 'api-error');
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/loyalty/redeem', async (req, res) => {
+    try {
+      const { userAddress, amount, rewardDescription } = req.body;
+      const { redeemLoyaltyTokens, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      
+      if (!validateFlowAddress(userAddress)) {
+        return res.status(400).json({ error: 'Invalid Flow address format' });
+      }
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+      
+      if (!rewardDescription) {
+        return res.status(400).json({ error: 'Reward description is required' });
+      }
+      
+      const txHash = await redeemLoyaltyTokens(userAddress, amount, rewardDescription);
+      res.json({ success: true, txHash, amount, rewardDescription });
+    } catch (error: any) {
+      log(`Error redeeming BPTS: ${error.message}`, 'api-error');
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize bots and Flow connection

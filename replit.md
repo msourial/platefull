@@ -52,6 +52,15 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 - **Conversation Management**: State-based conversation tracking
 - **Feature Parity**: All Telegram bot features replicated for Instagram
 
+### BPTS Fungible Token Loyalty System ✓ (January 2025)
+- **Flow Fungible Token**: Implemented BoustanPoints (BPTS) as Flow blockchain fungible loyalty tokens
+- **Dynamic Reward Calculation**: 10 BPTS per $1 spent with 1.5x bonus for orders over $50
+- **Comprehensive Token Operations**: Mint, transfer, burn, and balance tracking functionality
+- **Milestone Rewards**: Progressive bonuses (200-2500 BPTS) for order milestones (10, 25, 50, 100 orders)
+- **Referral & Birthday Bonuses**: 500 BPTS referral rewards and 1000 BPTS birthday bonuses
+- **REST API Integration**: Complete BPTS API endpoints for balance, transactions, transfers, and redemption
+- **Real-time Flow Integration**: Connects to Flow testnet with authentic block data and transaction validation
+
 ### PYUSD Stablecoin Integration ✓ (January 2025)
 - **Complete Payment Integration**: Added PYUSD (PayPal USD) as fourth payment option in Telegram bot
 - **Ethereum Sepolia Testnet**: Full integration with PYUSD stablecoin contract on Ethereum testnet
