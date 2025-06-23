@@ -339,6 +339,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PYUSD payment endpoints
+  app.post("/api/pyusd/process-payment", async (req, res) => {
+    try {
+      const { userAddress, amount, orderId } = req.body;
+      
+      if (!userAddress || !amount || !orderId) {
+        return res.status(400).json({ error: "User address, amount, and order ID are required" });
+      }
+
+      const { processPyusdPayment, createPyusdOrder, awardPyusdLoyalty } = await import('./services/pyusd');
+      
+      // Process PYUSD payment
+      const paymentTxId = await processPyusdPayment(amount, userAddress, orderId);
+      
+      if (paymentTxId) {
+        // Create order record
+        const orderTxId = await createPyusdOrder({
+          orderId,
+          customerAddress: userAddress,
+          items: [],
+          totalAmount: amount
+        });
+        
+        // Award loyalty rewards (1% in PYUSD)
+        const loyaltyAmount = amount * 0.01;
+        await awardPyusdLoyalty(userAddress, loyaltyAmount, orderId);
+        
+        res.json({ 
+          success: true,
+          paymentTxId,
+          orderTxId,
+          amount,
+          loyaltyReward: loyaltyAmount,
+          message: `Payment of ${amount} PYUSD processed successfully`
+        });
+      } else {
+        res.status(500).json({ error: "Failed to process PYUSD payment" });
+      }
+    } catch (error) {
+      log(`Error processing PYUSD payment: ${error}`, "pyusd-error");
+      res.status(500).json({ error: "Failed to process PYUSD payment" });
+    }
+  });
+
+  app.get("/api/pyusd/balance/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      const { verifyPyusdAddress, getPyusdBalance } = await import('./services/pyusd');
+      
+      const isValidAddress = await verifyPyusdAddress(address);
+      if (!isValidAddress) {
+        return res.status(400).json({ error: "Invalid PYUSD wallet address" });
+      }
+      
+      const balance = await getPyusdBalance(address);
+      
+      res.json({ 
+        address,
+        balance,
+        currency: "PYUSD"
+      });
+    } catch (error) {
+      log(`Error getting PYUSD balance: ${error}`, "pyusd-error");
+      res.status(500).json({ error: "Failed to get PYUSD balance" });
+    }
+  });
+
+  app.get("/api/pyusd/transactions/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      const { verifyPyusdAddress, getPyusdTransactions } = await import('./services/pyusd');
+      
+      const isValidAddress = await verifyPyusdAddress(address);
+      if (!isValidAddress) {
+        return res.status(400).json({ error: "Invalid PYUSD wallet address" });
+      }
+      
+      const transactions = await getPyusdTransactions(address);
+      
+      res.json({ 
+        address,
+        transactions
+      });
+    } catch (error) {
+      log(`Error getting PYUSD transactions: ${error}`, "pyusd-error");
+      res.status(500).json({ error: "Failed to get PYUSD transactions" });
+    }
+  });
+
   // Flow wallet browser extension connection endpoint
   app.get("/api/flow/connect", async (req, res) => {
     try {

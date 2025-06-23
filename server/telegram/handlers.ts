@@ -2828,6 +2828,7 @@ async function promptPaymentOptions(
     createInlineKeyboard([
       [{ text: "💰 Coinbase (Cryptocurrency)", callback_data: "payment_method:crypto" }],
       [{ text: "🌊 Pay by Flow", callback_data: "payment_method:flow" }],
+      [{ text: "💲 Pay with PYUSD", callback_data: "payment_method:pyusd" }],
       [{ text: "💵 Cash on Delivery/Pickup", callback_data: "payment_method:cash" }]
     ])
   );
@@ -2863,6 +2864,12 @@ async function processPaymentMethod(
     return;
   }
   
+  // Handle PYUSD payment method
+  if (method === 'pyusd') {
+    await handlePyusdPayment(bot, chatId, telegramUser, conversation, activeOrder);
+    return;
+  }
+  
   // Update order with payment method
   await storage.updateOrder(activeOrder.id, {
     paymentMethod: method
@@ -2875,6 +2882,62 @@ async function processPaymentMethod(
   
   // Show final order summary
   await showFinalOrderSummary(bot, chatId, activeOrder.id);
+}
+
+async function handlePyusdPayment(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any,
+  conversation: any,
+  activeOrder: any
+) {
+  try {
+    // Calculate order total
+    let subtotal = 0;
+    for (const item of activeOrder.orderItems) {
+      subtotal += parseFloat(item.price.toString()) * item.quantity;
+    }
+    
+    const deliveryFee = parseFloat(activeOrder.deliveryFee || "0");
+    const total = subtotal + deliveryFee;
+    
+    // Convert USD to PYUSD (1:1 peg with minimal processing fee)
+    const { usdToPyusd } = await import('../services/pyusd');
+    const pyusdAmount = usdToPyusd(total);
+    
+    await bot.sendMessage(
+      chatId,
+      `💲 *PYUSD Payment*\n\n` +
+      `Order Total: $${total.toFixed(2)} USD\n` +
+      `PYUSD Amount: ${pyusdAmount.toFixed(4)} PYUSD\n\n` +
+      `PYUSD is PayPal's U.S. dollar-backed stablecoin with:\n` +
+      `• 1:1 USD peg for price stability\n` +
+      `• Low transaction fees on Ethereum\n` +
+      `• Cross-border payment capabilities\n` +
+      `• Instant settlement\n\n` +
+      `Please enter your Ethereum wallet address to proceed:`,
+      { parse_mode: 'Markdown' }
+    );
+    
+    // Update conversation state
+    await storage.updateConversation(conversation.id, {
+      state: 'pyusd_wallet_address',
+      context: { 
+        ...conversation.context, 
+        paymentMethod: 'pyusd',
+        pyusdAmount: pyusdAmount,
+        totalUSD: total
+      }
+    });
+    
+  } catch (error) {
+    log(`Error handling PYUSD payment: ${error}`, 'telegram-error');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue setting up PYUSD payment. Please try another payment method.",
+      createInlineKeyboard([[{ text: "⬅️ Back to Payment Options", callback_data: "checkout" }]])
+    );
+  }
 }
 
 async function handleFlowPayment(
