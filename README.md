@@ -308,150 +308,150 @@ npx drizzle-kit generate:pg
     └── seed.ts          # Data seeding
 ```
 
-### Development Commands
+### 💻 Development Commands
 ```bash
-npm run dev              # Development server
-npm run build           # Production build
-npm run db:push         # Update database schema
-npm run db:seed         # Seed database
-npm run lint            # Code linting
-npm run type-check      # TypeScript validation
+npm run dev              # 🚀 Development server
+npm run build           # 🏗️ Production build
+npm run db:push         # 📊 Update database schema
+npm run db:seed         # 🌱 Seed database
+npm run lint            # 🔍 Code linting
+npm run type-check      # ✅ TypeScript validation
 ```
 
-### Testing
+### 🧪 Testing
 ```bash
-# API endpoint testing
+# 🔗 API endpoint testing
 curl http://localhost:5000/api/loyalty/info
 
-# Flow blockchain connectivity
+# 🌊 Flow blockchain connectivity
 curl http://localhost:5000/api/flow/balance/0x01cf0e2f2f715450
 
-# Telegram webhook (requires ngrok)
+# 📱 Telegram webhook (requires ngrok)
 curl -X POST http://localhost:5000/api/telegram/webhook
 ```
 
 ## 🔒 Security Features
 
-### Authentication & Authorization
-- Telegram user verification via Bot API
-- Instagram webhook signature validation
-- Flow wallet address validation
-- AI agent spending limits and timeouts
+### 🔐 Authentication & Authorization
+- 📱 Telegram user verification via Bot API
+- 📸 Instagram webhook signature validation
+- 💼 Flow wallet address validation
+- 🤖 AI agent spending limits and timeouts
 
-### Data Protection
-- Environment variable security for all API keys
-- PostgreSQL with parameterized queries
-- Input validation on all endpoints
-- Secure webhook verification
+### 🛡️ Data Protection
+- 🔑 Environment variable security for all API keys
+- 🐘 PostgreSQL with parameterized queries
+- ✅ Input validation on all endpoints
+- 🔒 Secure webhook verification
 
-### Blockchain Security
-- Flow testnet for safe development
-- Wallet address format validation
-- Transaction amount limits
-- Development mode transaction logging
+### ⛓️ Blockchain Security
+- 🧪 Flow testnet for safe development
+- 💼 Wallet address format validation
+- 💰 Transaction amount limits
+- 📝 Development mode transaction logging
 
 ## 📊 Monitoring & Analytics
 
-### Order Tracking
-- Real-time order status updates
-- Delivery tracking integration
-- Customer notification system
-- Performance metrics collection
+### 📋 Order Tracking
+- 🔔 Real-time order status updates
+- 🚚 Delivery tracking integration
+- 📱 Customer notification system
+- 📈 Performance metrics collection
 
-### AI Analytics
-- Conversation success rates
-- Recommendation accuracy tracking
-- User preference analysis
-- Platform usage statistics
+### 🤖 AI Analytics
+- ✅ Conversation success rates
+- 🎯 Recommendation accuracy tracking
+- 👤 User preference analysis
+- 📊 Platform usage statistics
 
-### Blockchain Monitoring
-- BPTS token transaction history
-- Loyalty reward distribution
-- Payment success rates
-- Wallet connection analytics
+### ⛓️ Blockchain Monitoring
+- 🪙 BPTS token transaction history
+- 🎁 Loyalty reward distribution
+- 💳 Payment success rates
+- 💼 Wallet connection analytics
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### ⚠️ Common Issues
 
-**Database Connection**
+**🐘 Database Connection**
 ```bash
-# Check PostgreSQL status
+# ✅ Check PostgreSQL status
 sudo systemctl status postgresql
 
-# Reset database connection
+# 🔄 Reset database connection
 npm run db:push
 ```
 
-**Flow Blockchain Issues**
+**🌊 Flow Blockchain Issues**
 ```bash
-# Test Flow connectivity
+# 🔗 Test Flow connectivity
 curl https://rest-testnet.onflow.org/v1/blocks?height=sealed
 
-# Verify wallet address format
+# 💼 Verify wallet address format
 # Flow addresses: 0x + 16 hex characters
 ```
 
-**AI Service Errors**
+**🤖 AI Service Errors**
 ```bash
-# Check API key configuration
+# 🔑 Check API key configuration
 echo $OPENAI_API_KEY | cut -c1-7
 echo $ANTHROPIC_API_KEY | cut -c1-7
 
-# Test AI endpoints
+# 🧪 Test AI endpoints
 curl -X POST localhost:5000/api/ai/recommendations
 ```
 
-**Telegram/Instagram Bot Issues**
+**📱 Telegram/Instagram Bot Issues**
 ```bash
-# Verify webhook configuration
+# ✅ Verify webhook configuration
 curl https://api.telegram.org/bot<TOKEN>/getWebhookInfo
 
-# Test message processing
+# 🧪 Test message processing
 curl -X POST localhost:5000/api/telegram/webhook
 ```
 
 ## 📈 Performance Optimization
 
-### Database Optimization
-- Indexed foreign keys for fast joins
-- Connection pooling with proper limits
-- Query optimization with Drizzle ORM
-- Pagination for large datasets
+### 🗄️ Database Optimization
+- 📊 Indexed foreign keys for fast joins
+- 🔗 Connection pooling with proper limits
+- ⚡ Query optimization with Drizzle ORM
+- 📄 Pagination for large datasets
 
-### API Performance
-- Response caching for static data
-- Async/await for non-blocking operations
-- Error handling with proper HTTP codes
-- Request validation with Zod schemas
+### 🚀 API Performance
+- 💾 Response caching for static data
+- ⚡ Async/await for non-blocking operations
+- ❌ Error handling with proper HTTP codes
+- ✅ Request validation with Zod schemas
 
-### Blockchain Efficiency
-- Batched BPTS token operations
-- Testnet-first development approach
-- Optimized transaction formatting
-- Connection pooling for Flow API calls
+### ⛓️ Blockchain Efficiency
+- 📦 Batched BPTS token operations
+- 🧪 Testnet-first development approach
+- 🔧 Optimized transaction formatting
+- 🔗 Connection pooling for Flow API calls
 
 ## 🚀 Deployment
 
-### Production Requirements
-- Node.js 20+ production environment
-- PostgreSQL database (managed service recommended)
-- SSL certificates for webhook endpoints
-- Environment variable management system
+### 🏗️ Production Requirements
+- 🟢 Node.js 20+ production environment
+- 🐘 PostgreSQL database (managed service recommended)
+- 🔒 SSL certificates for webhook endpoints
+- 🔑 Environment variable management system
 
-### Replit Deployment
+### 🌐 Replit Deployment
 ```bash
-# Build production assets
+# 🏗️ Build production assets
 npm run build
 
-# Deploy to Replit
-# Configure production environment variables
-# Set up custom domain (optional)
+# 🚀 Deploy to Replit
+# 🔧 Configure production environment variables
+# 🌍 Set up custom domain (optional)
 ```
 
-### Environment Configuration
+### ⚙️ Environment Configuration
 ```bash
-# Production environment variables
+# 🏭 Production environment variables
 NODE_ENV=production
 DATABASE_URL=postgresql://prod-connection-string
 TELEGRAM_BOT_TOKEN=production-bot-token
@@ -460,32 +460,32 @@ TELEGRAM_BOT_TOKEN=production-bot-token
 
 ## 📚 Additional Resources
 
-### Documentation Links
-- [Flow Blockchain Documentation](https://docs.onflow.org/)
-- [Telegram Bot API](https://core.telegram.org/bots/api)
-- [Instagram Graph API](https://developers.facebook.com/docs/instagram-api/)
-- [OpenAI API Documentation](https://platform.openai.com/docs)
-- [Anthropic Claude API](https://docs.anthropic.com/)
+### 📖 Documentation Links
+- 🌊 [Flow Blockchain Documentation](https://docs.onflow.org/)
+- 📱 [Telegram Bot API](https://core.telegram.org/bots/api)
+- 📸 [Instagram Graph API](https://developers.facebook.com/docs/instagram-api/)
+- 🤖 [OpenAI API Documentation](https://platform.openai.com/docs)
+- 🧠 [Anthropic Claude API](https://docs.anthropic.com/)
 
-### Development Tools
-- [Drizzle ORM Documentation](https://orm.drizzle.team/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [shadcn/ui Components](https://ui.shadcn.com/)
-- [React Query](https://tanstack.com/query/)
+### 🛠️ Development Tools
+- 🗄️ [Drizzle ORM Documentation](https://orm.drizzle.team/)
+- 🎨 [Tailwind CSS](https://tailwindcss.com/)
+- 🧩 [shadcn/ui Components](https://ui.shadcn.com/)
+- ⚡ [React Query](https://tanstack.com/query/)
 
 ## 📄 License
 
-This project is proprietary software developed for Boustan Lebanese restaurant chain. All rights reserved.
+This project is proprietary software developed for Boustan Lebanese restaurant chain. All rights reserved. 🏛️
 
 ## 🤝 Contributing
 
-This is a private project. For internal development questions or issues, please contact the development team.
+This is a private project. For internal development questions or issues, please contact the development team. 👥
 
 ---
 
-**Last Updated**: January 2025  
-**Version**: 2.0.0  
-**Node.js**: 20+  
-**Database**: PostgreSQL with Drizzle ORM  
-**Blockchain**: Flow Testnet Integration  
-**AI**: OpenAI GPT-4o + Anthropic Claude Sonnet 4
+🎉 **Last Updated**: January 2025  
+🚀 **Version**: 2.0.0  
+🟢 **Node.js**: 20+  
+🐘 **Database**: PostgreSQL with Drizzle ORM  
+⛓️ **Blockchain**: Flow Testnet Integration  
+🤖 **AI**: OpenAI GPT-4o + Anthropic Claude Sonnet 4
