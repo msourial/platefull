@@ -1,65 +1,65 @@
-# Boustan AI Food Ordering Platform
+# 🍽️ Boustan AI Food Ordering Platform 🤖
 
-An innovative multi-platform AI-powered food ordering application for Boustan Lebanese restaurant chain featuring conversational AI agents, blockchain integration, and comprehensive payment systems.
+🚀 An innovative multi-platform AI-powered food ordering application for Boustan Lebanese restaurant chain featuring conversational AI agents, blockchain integration, and comprehensive payment systems! 💫
 
 ## 🏗️ Architecture Overview
 
-### Core Technologies
-- **Frontend**: React 18 with TypeScript, Tailwind CSS, shadcn/ui components
-- **Backend**: Express.js with TypeScript, RESTful API architecture
-- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
-- **AI Integration**: 
-  - OpenAI GPT-4o for Telegram bot conversations
-  - Anthropic Claude Sonnet 4 for Instagram bot interactions
-- **Blockchain**: Flow testnet integration for Web3 features
-- **Messaging Platforms**: 
-  - Telegram Bot API for conversational ordering
-  - Instagram Graph API for messaging integration
+### 💻 Core Technologies
+- **🖥️ Frontend**: React 18 with TypeScript, Tailwind CSS, shadcn/ui components
+- **⚙️ Backend**: Express.js with TypeScript, RESTful API architecture
+- **🗄️ Database**: PostgreSQL with Drizzle ORM for type-safe database operations
+- **🤖 AI Integration**: 
+  - OpenAI GPT-4o for Telegram bot conversations 🧠
+  - Anthropic Claude Sonnet 4 for Instagram bot interactions 🎯
+- **⛓️ Blockchain**: Flow testnet integration for Web3 features
+- **📱 Messaging Platforms**: 
+  - Telegram Bot API for conversational ordering 💬
+  - Instagram Graph API for messaging integration 📸
 
-### Platform Support
-1. **Telegram Bot**: Primary conversational ordering interface
-2. **Instagram Bot**: Social media messaging integration
-3. **Web Dashboard**: React frontend for order management and analytics
-4. **Flow Blockchain**: Decentralized payments and loyalty systems
+### 🌐 Platform Support
+1. **📨 Telegram Bot**: Primary conversational ordering interface
+2. **📷 Instagram Bot**: Social media messaging integration
+3. **📊 Web Dashboard**: React frontend for order management and analytics
+4. **⛓️ Flow Blockchain**: Decentralized payments and loyalty systems
 
 ## 🚀 Key Features
 
-### Multi-Platform Conversational AI
-- **Natural Language Processing**: Advanced intent recognition and entity extraction
-- **Personalized Recommendations**: AI-driven food suggestions based on user preferences
-- **Dietary Preferences**: Automatic detection and accommodation of dietary restrictions
-- **Conversation Context**: Stateful multi-turn conversations with memory
-- **Order Customization**: Interactive menu item customization with AI assistance
+### 🤖 Multi-Platform Conversational AI
+- **🧠 Natural Language Processing**: Advanced intent recognition and entity extraction
+- **💡 Personalized Recommendations**: AI-driven food suggestions based on user preferences
+- **🥗 Dietary Preferences**: Automatic detection and accommodation of dietary restrictions
+- **💬 Conversation Context**: Stateful multi-turn conversations with memory
+- **🍽️ Order Customization**: Interactive menu item customization with AI assistance
 
-### Blockchain Integration (Flow)
-- **BPTS Fungible Token Loyalty System**: BoustanPoints (BPTS) as Flow blockchain tokens
-- **Dynamic Reward Structure**: 10 BPTS per $1 spent with 1.5x bonus for orders over $50
-- **Milestone Rewards**: Progressive bonuses (200-2500 BPTS) for order achievements
-- **AI Agent Payments**: Automated payment processing to restaurant wallet
-- **Real-time Testnet Integration**: Authentic Flow blockchain connectivity
+### ⛓️ Blockchain Integration (Flow)
+- **🪙 BPTS Fungible Token Loyalty System**: BoustanPoints (BPTS) as Flow blockchain tokens
+- **💰 Dynamic Reward Structure**: 10 BPTS per $1 spent with 1.5x bonus for orders over $50
+- **🏆 Milestone Rewards**: Progressive bonuses (200-2500 BPTS) for order achievements
+- **🤖 AI Agent Payments**: Automated payment processing to restaurant wallet
+- **🔗 Real-time Testnet Integration**: Authentic Flow blockchain connectivity
 
-### Payment Systems
-1. **Traditional Payments**: Coinbase Commerce integration
-2. **Flow Tokens**: Native FLOW cryptocurrency payments
-3. **PYUSD Stablecoin**: PayPal USD on Ethereum Sepolia testnet with 1% cashback
-4. **AI Agent Authorization**: Automated spending with user-controlled limits
+### 💳 Payment Systems
+1. **💸 Traditional Payments**: Coinbase Commerce integration
+2. **🌊 Flow Tokens**: Native FLOW cryptocurrency payments
+3. **💵 PYUSD Stablecoin**: PayPal USD on Ethereum Sepolia testnet with 1% cashback
+4. **🤖 AI Agent Authorization**: Automated spending with user-controlled limits
 
-### Advanced Order Management
-- **Multi-stage Ordering**: Guided ordering flow with customizations
-- **Delivery Options**: Pickup and delivery with address management
-- **Order History**: Complete transaction and preference tracking
-- **Real-time Updates**: Order status notifications across platforms
+### 📋 Advanced Order Management
+- **🎯 Multi-stage Ordering**: Guided ordering flow with customizations
+- **🚚 Delivery Options**: Pickup and delivery with address management
+- **📜 Order History**: Complete transaction and preference tracking
+- **🔔 Real-time Updates**: Order status notifications across platforms
 
 ## 📋 Technical Requirements
 
-### System Dependencies
-- Node.js 20+ with TypeScript support
-- PostgreSQL database
-- Flow testnet access
-- Telegram Bot API token
-- Instagram Graph API credentials
+### 🛠️ System Dependencies
+- 🟢 Node.js 20+ with TypeScript support
+- 🐘 PostgreSQL database
+- 🌊 Flow testnet access
+- 🤖 Telegram Bot API token
+- 📸 Instagram Graph API credentials
 
-### Environment Variables
+### 🔐 Environment Variables
 ```bash
 # Database Configuration
 DATABASE_URL=postgresql://username:password@host:port/database
@@ -90,19 +90,19 @@ PGPASSWORD=...
 
 ## 🗄️ Database Schema
 
-### Core Tables
-- **users**: Base user management
-- **telegram_users**: Telegram-specific user data with conversation state
-- **instagram_users**: Instagram-specific user profiles
-- **categories**: Menu category organization
-- **menu_items**: Complete menu with pricing and descriptions
-- **customization_options**: Item customization choices
-- **orders**: Order management with payment tracking
-- **order_items**: Individual order line items with customizations
-- **conversations**: Platform-agnostic conversation tracking
-- **conversation_messages**: Message history with AI context
+### 📊 Core Tables
+- **👥 users**: Base user management
+- **📱 telegram_users**: Telegram-specific user data with conversation state
+- **📸 instagram_users**: Instagram-specific user profiles
+- **📂 categories**: Menu category organization
+- **🍽️ menu_items**: Complete menu with pricing and descriptions
+- **🔧 customization_options**: Item customization choices
+- **📋 orders**: Order management with payment tracking
+- **🛒 order_items**: Individual order line items with customizations
+- **💬 conversations**: Platform-agnostic conversation tracking
+- **📝 conversation_messages**: Message history with AI context
 
-### Relationship Structure
+### 🔗 Relationship Structure
 ```sql
 categories (1) -> (many) menu_items
 menu_items (1) -> (many) customization_options
@@ -114,22 +114,22 @@ conversations (1) -> (many) conversation_messages
 
 ## 🤖 AI Integration Details
 
-### OpenAI GPT-4o (Telegram)
-- **Model**: `gpt-4o` (latest OpenAI model)
-- **Capabilities**: 
-  - Natural language understanding for food orders
-  - Dietary preference detection and accommodation
-  - Menu item recommendations with reasoning
-  - Order customization assistance
-  - Multi-turn conversation management
+### 🤖 OpenAI GPT-4o (Telegram)
+- **🧠 Model**: `gpt-4o` (latest OpenAI model)
+- **⚡ Capabilities**: 
+  - 🍽️ Natural language understanding for food orders
+  - 🥗 Dietary preference detection and accommodation
+  - 💡 Menu item recommendations with reasoning
+  - 🔧 Order customization assistance
+  - 💬 Multi-turn conversation management
 
-### Anthropic Claude Sonnet 4 (Instagram)
-- **Model**: `claude-sonnet-4-20250514` (latest Anthropic model)
-- **Features**:
-  - Instagram message processing
-  - Context-aware responses
-  - Menu navigation assistance
-  - Order placement guidance
+### 🎯 Anthropic Claude Sonnet 4 (Instagram)
+- **🚀 Model**: `claude-sonnet-4-20250514` (latest Anthropic model)
+- **✨ Features**:
+  - 📸 Instagram message processing
+  - 🧠 Context-aware responses
+  - 🧭 Menu navigation assistance
+  - 📋 Order placement guidance
 
 ### AI Service Architecture
 ```typescript
@@ -146,14 +146,14 @@ interface FoodRecommendationResponse {
 
 ## ⛓️ Blockchain Integration (Flow)
 
-### BPTS Fungible Token System
-- **Token Name**: BoustanPoints (BPTS)
-- **Network**: Flow Testnet
-- **Contract Address**: `0x0000000000000000000000020C09Dd1F4140940f`
-- **Decimals**: 8
-- **Base Rate**: 10 BPTS per $1 USD spent
+### 🪙 BPTS Fungible Token System
+- **🏷️ Token Name**: BoustanPoints (BPTS)
+- **🌐 Network**: Flow Testnet
+- **📍 Contract Address**: `0x0000000000000000000000020C09Dd1F4140940f`
+- **🔢 Decimals**: 8
+- **💰 Base Rate**: 10 BPTS per $1 USD spent
 
-### Reward Structure
+### 🎁 Reward Structure
 ```typescript
 interface LoyaltyTokenReward {
   basePointsPerDollar: 10;
@@ -169,119 +169,119 @@ interface LoyaltyTokenReward {
 }
 ```
 
-### Flow Integration Features
-- **Real-time Testnet Connection**: Connects to Flow testnet for authentic block data
-- **Transaction Validation**: Flow REST API compliant transaction formatting
-- **Development Mode**: Safe testing environment with comprehensive logging
-- **Wallet Management**: Flow wallet connection and verification system
+### 🔗 Flow Integration Features
+- **⚡ Real-time Testnet Connection**: Connects to Flow testnet for authentic block data
+- **✅ Transaction Validation**: Flow REST API compliant transaction formatting
+- **🛡️ Development Mode**: Safe testing environment with comprehensive logging
+- **💼 Wallet Management**: Flow wallet connection and verification system
 
 ## 💳 Payment Integration
 
-### Multi-Currency Support
-1. **Traditional Payments** (Coinbase Commerce)
-   - Credit/debit cards
-   - Bank transfers
-   - Cryptocurrency (BTC, ETH, etc.)
+### 💰 Multi-Currency Support
+1. **💸 Traditional Payments** (Coinbase Commerce)
+   - 💳 Credit/debit cards
+   - 🏦 Bank transfers
+   - ₿ Cryptocurrency (BTC, ETH, etc.)
 
-2. **Flow Native Tokens**
-   - FLOW cryptocurrency payments
-   - Real-time USD ↔ FLOW conversion
-   - Testnet transaction processing
+2. **🌊 Flow Native Tokens**
+   - 💎 FLOW cryptocurrency payments
+   - 🔄 Real-time USD ↔ FLOW conversion
+   - 🧪 Testnet transaction processing
 
-3. **PYUSD Stablecoin** (Ethereum Sepolia)
-   - PayPal USD stablecoin integration
-   - 1% loyalty cashback in PYUSD
-   - Gas-optimized transfers
+3. **💵 PYUSD Stablecoin** (Ethereum Sepolia)
+   - 🔗 PayPal USD stablecoin integration
+   - 💰 1% loyalty cashback in PYUSD
+   - ⚡ Gas-optimized transfers
 
-4. **AI Agent Payments**
-   - Automated payment processing
-   - User-controlled spending limits
-   - Restaurant wallet integration
+4. **🤖 AI Agent Payments**
+   - 🔄 Automated payment processing
+   - 🎚️ User-controlled spending limits
+   - 🏪 Restaurant wallet integration
 
 ## 🔗 API Endpoints
 
-### Core Menu & Orders
+### 🍽️ Core Menu & Orders
 ```
-GET    /api/categories              - Menu categories
-GET    /api/menu-items             - Menu items (with category filter)
-GET    /api/menu-items/:id         - Specific menu item
-GET    /api/orders                 - Order history
-POST   /api/orders                 - Create new order
-PUT    /api/orders/:id/status      - Update order status
-GET    /api/stats                  - Order statistics
-```
-
-### Telegram Integration
-```
-POST   /api/telegram/webhook       - Telegram webhook handler
-POST   /api/telegram/set-webhook   - Configure webhook URL
+GET    /api/categories              - 📂 Menu categories
+GET    /api/menu-items             - 🍽️ Menu items (with category filter)
+GET    /api/menu-items/:id         - 🔍 Specific menu item
+GET    /api/orders                 - 📜 Order history
+POST   /api/orders                 - ➕ Create new order
+PUT    /api/orders/:id/status      - 🔄 Update order status
+GET    /api/stats                  - 📊 Order statistics
 ```
 
-### Instagram Integration
+### 📱 Telegram Integration
 ```
-GET    /api/instagram/webhook      - Instagram webhook verification
-POST   /api/instagram/webhook      - Instagram message processing
-```
-
-### Flow Blockchain
-```
-GET    /api/flow/balance/:address  - Flow token balance
-POST   /api/flow/payment          - Process Flow payment
-GET    /api/flow/wallet-page      - Wallet connection interface
-POST   /api/flow/wallet-connected - Wallet connection callback
+POST   /api/telegram/webhook       - 🔔 Telegram webhook handler
+POST   /api/telegram/set-webhook   - ⚙️ Configure webhook URL
 ```
 
-### BPTS Loyalty System
+### 📸 Instagram Integration
 ```
-GET    /api/loyalty/info          - Token contract information
-GET    /api/loyalty/balance/:address - BPTS token balance
-GET    /api/loyalty/transactions/:address - Transaction history
-POST   /api/loyalty/transfer      - Transfer BPTS tokens
-POST   /api/loyalty/redeem        - Redeem BPTS for rewards
+GET    /api/instagram/webhook      - ✅ Instagram webhook verification
+POST   /api/instagram/webhook      - 💬 Instagram message processing
+```
+
+### 🌊 Flow Blockchain
+```
+GET    /api/flow/balance/:address  - 💰 Flow token balance
+POST   /api/flow/payment          - 💳 Process Flow payment
+GET    /api/flow/wallet-page      - 💼 Wallet connection interface
+POST   /api/flow/wallet-connected - 🔗 Wallet connection callback
+```
+
+### 🪙 BPTS Loyalty System
+```
+GET    /api/loyalty/info          - ℹ️ Token contract information
+GET    /api/loyalty/balance/:address - 💰 BPTS token balance
+GET    /api/loyalty/transactions/:address - 📊 Transaction history
+POST   /api/loyalty/transfer      - 🔄 Transfer BPTS tokens
+POST   /api/loyalty/redeem        - 🎁 Redeem BPTS for rewards
 ```
 
 ## 🚀 Installation & Setup
 
-### Prerequisites
+### 🔧 Prerequisites
 ```bash
-# Install Node.js 20+
+# 🟢 Install Node.js 20+
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# Install PostgreSQL
+# 🐘 Install PostgreSQL
 sudo apt-get install postgresql postgresql-contrib
 ```
 
-### Project Setup
+### 🚀 Project Setup
 ```bash
-# Clone repository
+# 📥 Clone repository
 git clone <repository-url>
 cd boustan-ai-platform
 
-# Install dependencies
+# 📦 Install dependencies
 npm install
 
-# Environment setup
+# 🔧 Environment setup
 cp .env.example .env
 # Configure all environment variables
 
-# Database setup
+# 🗄️ Database setup
 npm run db:push    # Apply schema migrations
 npm run db:seed    # Seed initial data
 
-# Development server
+# 🌟 Development server
 npm run dev        # Starts Express + Vite servers
 ```
 
-### Database Migration
+### 🔄 Database Migration
 ```bash
-# Schema changes
+# 📊 Schema changes
 npm run db:push
 
-# Reset database (careful!)
+# ⚠️ Reset database (careful!)
 npm run db:reset
 
-# Generate new migrations
+# 🛠️ Generate new migrations
 npx drizzle-kit generate:pg
 ```
 
