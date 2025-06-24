@@ -2,12 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boustan AI - Restaurant Dashboard</title>
+    <style>
+      /* Hide runtime error overlay */
+      [data-vite-runtime-error-overlay] {
+        display: none !important;
+      }
+      .vite-runtime-error-overlay {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- This script injects a replit badge into the page, please feel free to remove this line -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-badge-v3.js"></script>
+    <script>
+      // Disable runtime error overlay
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const style = document.createElement('style');
+        style.textContent = `
+          [data-vite-runtime-error-overlay],
+          .vite-runtime-error-overlay,
+          .runtime-error-overlay {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    </script>
   </body>
 </html>

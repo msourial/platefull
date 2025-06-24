@@ -675,18 +675,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { parse_mode: 'Markdown' }
       );
 
-      // Process the wallet address as if it was manually entered
-      const { processFlowWalletAddress } = await import('./telegram/handlers');
-      
       // Get user and conversation data
       const telegramUser = await storage.getTelegramUserByTelegramId(telegram_id);
-      const conversation = await storage.getConversationByTelegramUserId(telegramUser?.id);
-      
-      if (telegramUser && conversation) {
-        // Process the wallet address for payment
-        setTimeout(async () => {
-          await processFlowWalletAddress(bot, parseInt(chat_id), telegramUser, conversation, wallet_address);
-        }, 1000);
+      if (telegramUser) {
+        const conversation = await storage.getConversationByTelegramUserId(telegramUser.id);
+        
+        if (conversation) {
+          // Update conversation context with wallet address
+          await storage.updateConversation(conversation.id, {
+            context: {
+              ...(conversation.context || {}),
+              walletAddress: wallet_address,
+              paymentMethod: 'flow'
+            }
+          });
+        }
       }
 
       res.json({ success: true, message: "Wallet connected successfully" });
