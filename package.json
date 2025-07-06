@@ -16,7 +16,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
-    "@onflow/fcl": "^1.18.0",
+    "@onflow/fcl": "^1.19.0",
     "@onflow/types": "^1.4.1",
     "@onflow/util-encode-key": "^1.2.4",
     "@radix-ui/react-accordion": "^1.2.1",
