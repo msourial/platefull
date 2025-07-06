@@ -2,7 +2,7 @@ import { log } from "../../vite";
 
 // Service account configuration
 const SERVICE_ADDRESS = process.env.FLOW_SERVICE_ADDRESS;
-const RESTAURANT_WALLET = "0x0000000000000000000000020C09Dd1F4140940f";
+const RESTAURANT_WALLET = "0x49f3c91e0d907f1b";
 const FLOW_API_BASE = "https://rest-testnet.onflow.org";
 
 /**

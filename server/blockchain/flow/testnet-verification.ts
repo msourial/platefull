@@ -119,22 +119,26 @@ export async function testRealFlowPayment(): Promise<{
   try {
     log(`[testnet-verification] Testing real Flow payment transaction...`, 'flow-testnet');
     
-    // Test payment transaction
-    const transactionId = await processRealAgentPayment(
-      '0x9565c32a4fa5bf95', // From service account
-      '0x0000000000000000000000020C09Dd1F4140940f', // To restaurant wallet
+    // Use the new server-side signer directly for real testnet transactions
+    const { submitRealFlowPayment, getCurrentBlockHeight } = await import('./flow-server-signer.js');
+    
+    // Test payment transaction with real server-side signing
+    const transactionId = await submitRealFlowPayment(
       5.0, // 5 FLOW test payment
-      999 // Test order ID
+      999, // Test order ID
+      '0x9565c32a4fa5bf95', // From service account
+      '0x49f3c91e0d907f1b'  // To restaurant wallet
     );
 
     if (transactionId) {
-      const blockHeight = await getCurrentBlock();
-      const explorerUrl = `https://testnet.flowdiver.io/tx/${transactionId}`;
+      const blockHeight = await getCurrentBlockHeight();
+      const explorerUrl = `https://testnet.flowscan.org/transaction/${transactionId}`;
       
       log(`[testnet-verification] ✅ Real payment transaction successful!`, 'flow-testnet');
       log(`[testnet-verification] Transaction ID: ${transactionId}`, 'flow-testnet');
       log(`[testnet-verification] Block Height: ${blockHeight}`, 'flow-testnet');
-      log(`[testnet-verification] Explorer: ${explorerUrl}`, 'flow-testnet');
+      log(`[testnet-verification] Flowscan: ${explorerUrl}`, 'flow-testnet');
+      log(`[testnet-verification] FlowDiver: https://testnet.flowdiver.io/tx/${transactionId}`, 'flow-testnet');
       
       return {
         success: true,

@@ -54,7 +54,7 @@ interface FlowAgentAuthorization {
 const AI_AGENT_ADDRESS = process.env.FLOW_AI_AGENT_ADDRESS || "0x01cf0e2f2f715450";
 
 // Restaurant wallet address for receiving payments
-const RESTAURANT_WALLET_ADDRESS = process.env.FLOW_RESTAURANT_ADDRESS || "0x179b6b1cb6755e31";
+const RESTAURANT_WALLET_ADDRESS = process.env.FLOW_RESTAURANT_ADDRESS || "0x49f3c91e0d907f1b";
 
 /**
  * Initialize Flow blockchain connection

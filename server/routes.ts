@@ -280,6 +280,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Direct server-side Flow payment test
+  app.post('/api/flow/testnet/test-direct-payment', async (req, res) => {
+    try {
+      const { submitRealFlowPayment, getCurrentBlockHeight, getFlowAccount } = await import('./blockchain/flow/flow-server-signer.js');
+      
+      log(`[direct-payment-test] Testing direct server-side Flow payment`, 'flow-testnet');
+      
+      // Check account details first
+      const serviceAccount = await getFlowAccount('0x9565c32a4fa5bf95');
+      const restaurantAccount = await getFlowAccount('0x49f3c91e0d907f1b');
+      
+      log(`[direct-payment-test] Service account exists: ${!!serviceAccount}`, 'flow-testnet');
+      log(`[direct-payment-test] Restaurant account exists: ${!!restaurantAccount}`, 'flow-testnet');
+      
+      if (serviceAccount) {
+        log(`[direct-payment-test] Service account balance: ${serviceAccount.balance}`, 'flow-testnet');
+      }
+      
+      const transactionId = await submitRealFlowPayment(
+        3.0, // 3 FLOW test payment
+        888, // Test order ID
+        '0x9565c32a4fa5bf95', // Your service account
+        '0x49f3c91e0d907f1b'  // Restaurant wallet
+      );
+
+      if (transactionId) {
+        const blockHeight = await getCurrentBlockHeight();
+        log(`[direct-payment-test] ✅ Direct payment test successful: ${transactionId}`, 'flow-testnet');
+        
+        res.json({
+          success: true,
+          transactionId,
+          blockHeight,
+          serviceAccountExists: !!serviceAccount,
+          restaurantAccountExists: !!restaurantAccount,
+          serviceBalance: serviceAccount?.balance || 0,
+          flowscanUrl: `https://testnet.flowscan.org/transaction/${transactionId}`,
+          flowdiverUrl: `https://testnet.flowdiver.io/tx/${transactionId}`
+        });
+      } else {
+        res.json({ success: false, error: 'Transaction failed' });
+      }
+    } catch (error) {
+      log(`[direct-payment-test] Error: ${error}`, 'flow-error');
+      res.status(500).json({ error: 'Failed to test direct payment' });
+    }
+  });
+
   // Flow AI agent authorization endpoints
   app.post("/api/flow/authorize-agent", async (req, res) => {
     try {

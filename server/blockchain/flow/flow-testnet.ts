@@ -142,76 +142,31 @@ export async function processRealAgentPayment(
   try {
     log(`[flow-testnet] Processing real agent payment transaction`, 'flow-testnet');
     
-    // Define the Cadence transaction for FLOW token transfer
-    const paymentTransaction = `
-      import FlowToken from 0x7e60df042a9c0868
-      import FungibleToken from 0x9a0766d93b6608b7
-
-      transaction(recipient: Address, amount: UFix64, orderId: String) {
-        let sentVault: @FungibleToken.Vault
-        
-        prepare(signer: AuthAccount) {
-          log("AI Agent processing payment on behalf of user")
-          log("Recipient: ".concat(recipient.toString()))
-          log("Amount: ".concat(amount.toString()).concat(" FLOW"))
-          log("Order ID: ".concat(orderId))
-          
-          // Get a reference to the signer's stored vault
-          let vaultRef = signer.borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
-            ?? panic("Could not borrow reference to the owner's Vault!")
-          
-          // Withdraw tokens from the signer's stored vault
-          self.sentVault <- vaultRef.withdraw(amount: amount)
-        }
-        
-        execute {
-          // Get the recipient's public account object
-          let recipient = getAccount(recipient)
-          
-          // Get a reference to the recipient's Receiver
-          let receiverRef = recipient.getCapability(/public/flowTokenReceiver)
-            .borrow<&{FungibleToken.Receiver}>()
-            ?? panic("Could not borrow receiver reference to the recipient's Vault")
-          
-          // Deposit the withdrawn tokens in the recipient's receiver
-          receiverRef.deposit(from: <-self.sentVault)
-          
-          log("Payment processed successfully via AI agent")
-        }
-      }
-    `;
-
-    // Create service authorization
-    const serviceAuthz = await createServiceAuthz();
-
-    // Submit the real transaction to Flow testnet
-    const transactionId = await fcl.mutate({
-      cadence: paymentTransaction,
-      args: (arg, t) => [
-        arg(toAddress, t.Address),
-        arg(amount.toFixed(8), t.UFix64),
-        arg(orderId.toString(), t.String)
-      ],
-      proposer: serviceAuthz,
-      payer: serviceAuthz,
-      authorizations: [serviceAuthz],
-      limit: 1000
-    });
-
-    // Wait for transaction to be sealed
-    const transaction = await fcl.tx(transactionId).onceSealed();
+    // Use the new server-side signer for real Flow testnet transactions
+    const { submitRealFlowPayment } = await import('./flow-server-signer.js');
     
-    log(`[flow-testnet] Real Payment Transaction Created:`, 'flow-testnet');
-    log(`[flow-testnet]   Transaction ID: ${transactionId}`, 'flow-testnet');
-    log(`[flow-testnet]   Block Height: ${transaction.blockId}`, 'flow-testnet');
-    log(`[flow-testnet]   Status: ${transaction.status}`, 'flow-testnet');
-    log(`[flow-testnet]   From Wallet: ${fromAddress}`, 'flow-testnet');
-    log(`[flow-testnet]   To Restaurant: ${toAddress}`, 'flow-testnet');
-    log(`[flow-testnet]   Amount: ${amount} FLOW`, 'flow-testnet');
-    log(`[flow-testnet]   Order ID: ${orderId}`, 'flow-testnet');
-    log(`[flow-testnet]   Explorer: https://testnet.flowdiver.io/tx/${transactionId}`, 'flow-testnet');
+    // Submit real Flow testnet transaction using your credentials
+    const transactionId = await submitRealFlowPayment(
+      amount,
+      orderId,
+      fromAddress,
+      toAddress
+    );
     
-    return transactionId;
+    if (transactionId) {
+      log(`[flow-testnet] ✅ Real Payment Transaction Submitted!`, 'flow-testnet');
+      log(`[flow-testnet]   Transaction ID: ${transactionId}`, 'flow-testnet');
+      log(`[flow-testnet]   From Wallet: ${fromAddress}`, 'flow-testnet');
+      log(`[flow-testnet]   To Restaurant: ${toAddress}`, 'flow-testnet');
+      log(`[flow-testnet]   Amount: ${amount} FLOW`, 'flow-testnet');
+      log(`[flow-testnet]   Order ID: ${orderId}`, 'flow-testnet');
+      log(`[flow-testnet]   Flowscan: https://testnet.flowscan.org/transaction/${transactionId}`, 'flow-testnet');
+      log(`[flow-testnet]   FlowDiver: https://testnet.flowdiver.io/tx/${transactionId}`, 'flow-testnet');
+      
+      return transactionId;
+    } else {
+      throw new Error('Transaction submission failed');
+    }
   } catch (error) {
     log(`[flow-testnet] Error processing real payment: ${error}`, 'flow-error');
     log(`[flow-testnet] Falling back to development mode`, 'flow-testnet');
