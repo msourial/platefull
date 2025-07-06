@@ -92,14 +92,17 @@ export async function getCurrentHealthMetrics(telegramUserId: string): Promise<H
   return generateSimulatedHealthMetrics();
 }
 
+// Store connected users in memory for demo purposes
+// In production, this would be stored in the database
+const connectedHealthUsers = new Set<string>();
+
 /**
  * Check if user has health tracking enabled
  * In production, this would check the database
  */
 export async function isHealthTrackingEnabled(telegramUserId: string): Promise<boolean> {
-  // For demo purposes, assume health tracking is enabled if user has opted in
-  // In production, this would check the database
-  return true; // Simulate enabled for demo
+  // Check if user has connected a health device
+  return connectedHealthUsers.has(telegramUserId);
 }
 
 /**
@@ -115,6 +118,11 @@ export async function connectHealthDevice(
     // In production, this would handle OAuth flows and API authentication
     
     console.log(`[health-tracker] Simulating connection of ${deviceType} for user ${telegramUserId}`);
+    
+    // Mark user as having health tracking enabled
+    if (typeof connectedHealthUsers !== 'undefined') {
+      connectedHealthUsers.add(telegramUserId);
+    }
     
     const deviceNames = {
       apple_watch: 'Apple Watch',
@@ -146,11 +154,11 @@ export async function connectHealthDevice(
  */
 export async function disconnectHealthTracking(telegramUserId: string): Promise<boolean> {
   try {
-    // For demo purposes, simulate successful disconnection
-    // In production, this would revoke API access and clear stored data
-    
+    // Remove user from connected health users
+    if (typeof connectedHealthUsers !== 'undefined') {
+      connectedHealthUsers.delete(telegramUserId);
+    }
     console.log(`[health-tracker] Disconnecting health tracking for user ${telegramUserId}`);
-    
     return true;
   } catch (error) {
     console.error('[health-tracker] Error disconnecting health tracking:', error);
