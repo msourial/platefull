@@ -144,6 +144,23 @@ export async function processNaturalLanguage(text: string, telegramUserId: strin
       return response;
     }
     
+    // Check for health-based meal requests BEFORE regular order extraction
+    if (isHealthBasedMealRequest(normalizedText)) {
+      const response = {
+        intent: "health_meal_request",
+        message: "To provide personalized food recommendations based on your health data, please connect your HealthKit first."
+      };
+      
+      // Add bot response to conversation history
+      await storage.addMessageToConversation({
+        conversationId: conversation.id,
+        text: response.message,
+        isFromUser: false
+      });
+      
+      return response;
+    }
+    
     // Check for item ordering
     const orderMatch = await extractOrderItem(normalizedText, conversation.id);
     
@@ -467,6 +484,36 @@ function isCheckoutRequest(text: string): boolean {
     'go to checkout', 'proceed to checkout', 'process my order', 'i\'m done'
   ];
   return checkoutKeywords.some(keyword => text.toLowerCase().includes(keyword));
+}
+
+function isHealthBasedMealRequest(text: string): boolean {
+  const healthKeywords = [
+    'health', 'healthkit', 'apple watch', 'fitness', 'tracker', 'wellness',
+    'recovery', 'hrv', 'heart rate', 'sleep', 'stress', 'whoop', 'fitbit'
+  ];
+  
+  const mealKeywords = [
+    'meal', 'food', 'lunch', 'dinner', 'breakfast', 'recommendation', 'suggest',
+    'recommend', 'eat', 'order', 'custom', 'personalized', 'based on'
+  ];
+  
+  const normalizedText = text.toLowerCase();
+  
+  // Check if text contains both health and meal related keywords
+  const hasHealthKeyword = healthKeywords.some(keyword => normalizedText.includes(keyword));
+  const hasMealKeyword = mealKeywords.some(keyword => normalizedText.includes(keyword));
+  
+  // Also check for specific patterns like "customized meal based on my healthkit data"
+  const healthMealPatterns = [
+    /customiz\w* (?:meal|food|lunch|dinner|breakfast) based on (?:my )?(?:health|healthkit|apple watch|fitness)/i,
+    /(?:meal|food|lunch|dinner|breakfast) (?:recommendation|suggestion) based on (?:my )?(?:health|healthkit|fitness)/i,
+    /(?:personalized|custom) (?:meal|food) (?:using|with|from) (?:my )?(?:health|healthkit|fitness)/i,
+    /(?:food|meal) (?:for|based on) (?:my )?(?:health|fitness|wellness) (?:data|metrics)/i
+  ];
+  
+  const hasHealthMealPattern = healthMealPatterns.some(pattern => pattern.test(normalizedText));
+  
+  return (hasHealthKeyword && hasMealKeyword) || hasHealthMealPattern;
 }
 
 function extractCategory(text: string): string | undefined {

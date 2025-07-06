@@ -2245,6 +2245,22 @@ async function processNaturalLanguageInput(
           }
         );
       }
+    } else if (response.intent === "health_meal_request") {
+      // User wants health-based meal recommendations
+      await bot.sendMessage(
+        msg.chat.id,
+        "🍃 *Health-Based Food Recommendations*\n\n" +
+        "To provide personalized food recommendations based on your health data, please connect your HealthKit first.",
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🍎 Connect HealthKit", callback_data: "health_recommendations" }],
+              [{ text: "🍔 Browse Menu Instead", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
     } else if (response.intent === "checkout") {
       // User wants to checkout
       const activeOrder = await storage.getActiveOrderByTelegramUserId(telegramUser.id);
