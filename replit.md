@@ -18,13 +18,22 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 
 ## Recent Major Updates (January 2025)
 
+### Filecoin ZK Programmable Storage Integration ✓ (January 2025)
+- **Privacy-First Health Data Storage**: Implemented Filecoin's programmable storage layer with zero-knowledge proofs
+- **ZK Privacy Technology**: Health data integrity verified on-chain while keeping metrics completely private
+- **Automated Storage Integration**: Health data automatically stored on Filecoin when devices are connected
+- **Smart Contract Verification**: Cryptographic commitments stored on-chain for data integrity verification
+- **USDFC Payment Model**: Supports usage-based billing for Filecoin storage services
+- **Cross-chain Accessibility**: Health data accessible across web3 ecosystems while maintaining privacy
+- **Complete Implementation**: Full service with encryption, ZK proof generation, and on-chain verification
+
 ### Health Tracker Integration with Flow AI Agent ✓ (January 2025)
 - **Complete Health Tracking System**: Implemented Apple Watch and Whoop integration with simulated health data for demo
 - **Flow AI Agent Health Analysis**: New specialized AI agent using Anthropic Claude 4.0 for personalized food recommendations
 - **Real-time Health Metrics**: Tracks sleep quality, HRV, stress levels, activity, recovery scores, and hydration
 - **Health-Based Recommendations**: AI analyzes current health status to suggest optimal food choices with detailed explanations
-- **Telegram Bot Integration**: Added "🍃 Tailored to Your Health" option in welcome menu with full conversation flow
-- **Privacy-First Design**: Built with ZK privacy for future on-chain health data storage, opt-in/opt-out anytime
+- **Telegram Bot Integration**: Added "🍃 Food Based on Your Health" option in welcome menu with full conversation flow
+- **Privacy-First Design**: Built with Filecoin ZK storage for privacy-preserving health data management
 - **Demo-Ready System**: Simulates realistic health data patterns based on time of day for comprehensive testing
 
 ## Recent Major Updates (January 2025)

@@ -2,7 +2,10 @@
  * Health Tracker Integration Service
  * Simulates Apple Watch and Whoop health data for demo purposes
  * In production, this would integrate with real HealthKit and Whoop APIs
+ * Integrates with Filecoin ZK storage for privacy-preserving data storage
  */
+
+import { storeHealthDataOnFilecoin, getFilecoinStorageInfo } from './filecoin-zk-storage';
 
 export interface HealthMetrics {
   heartRateVariability: number; // HRV in milliseconds
@@ -135,6 +138,15 @@ export async function connectHealthDevice(
     };
     
     const deviceName = deviceNames[deviceType] || 'Health Tracker';
+    
+    // Store initial health data on Filecoin with ZK privacy
+    console.log(`[health-tracker] Storing initial health data on Filecoin for user ${telegramUserId}`);
+    const healthData = generateSimulatedHealthMetrics();
+    const storageResult = await storeHealthDataOnFilecoin(telegramUserId, healthData);
+    
+    if (storageResult.success) {
+      console.log(`[health-tracker] Health data stored on Filecoin with CID: ${storageResult.cid}`);
+    }
     
     return {
       success: true,

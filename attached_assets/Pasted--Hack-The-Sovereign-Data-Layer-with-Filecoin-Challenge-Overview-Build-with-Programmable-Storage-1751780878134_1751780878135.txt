@@ -1,0 +1,12 @@
+⚡️ Hack The Sovereign Data Layer with Filecoin
+🧩
+Challenge Overview
+Build with Programmable Storage on Filecoin Filecoin is going fully on-chain. Now’s your chance to build with it! Store and retrieve data based on smart contract logic, and enable new payment flows like usage-based billing, escrow, or perpetual storage funding. Build developer-first tooling to unlock this new infrastructure, or explore impactful use cases like Data DAOs, archives, and verifiable AI training data. Key Primitives to Explore: Store Data: Use Filecoin Services on-chain stack, available data onramps, or custom tooling. Retrieve Data: Access data stored on Filecoin with smart contracts and/or Spark CDN via Filecoin Services. Payment for Storage and Retrieval: Enable crypto-based payments for storage/retrieval using the new USDFC stablecoin. Programmable Storage: Build custom storage/retrieval logic using FVM smart contracts. Cross-chain Bridges: Connect Filecoin storage services to other web3 ecosystems via bridges or custom tools. Tooling: Create SDKs, CLIs, and wrappers that simplify interaction with Filecoin Services. Project Inspo: Check the Request for Hackers for impactful use cases. 🧩 Open Source Contribution Prize Pool Prize: Contribute and Power the Filecoin Stack Submit accepted PRs to the Filecoin ecosystem’s open-source backbone to be eligible. Contribute to SDKs, fix bugs, improve APIs, enhance documentation, or build dev tooling. Prize Pool: $2,000 Eligible Repositories: https://github.com/filecoin-project/ref-fvm https://github.com/filecoin-project/filecoin-docs https://github.com/FilOzone/synapse-sdk https://github.com/FilOzone/synapse-services https://github.com/FilOzone/fws-payments https://github.com/FIL-Builders/onramp-contracts https://github.com/FIL-Builders/xchainClient
+
+Example project ideas
+Store Data: Use Filecoin Services on-chain stack, available data onramps, or custom tooling.
+Retrieve Data: Access data stored on Filecoin with smart contracts and/or Spark CDN via Filecoin Services.
+Payment for Storage and Retrieval: Enable crypto-based payments for storage/retrieval using the new USDFC stablecoin.
+Programmable Storage: Build custom storage/retrieval logic using FVM smart contracts.
+Cross-chain Bridges: Connect Filecoin storage services to other web3 ecosystems via bridges or custom tools.
+Tooling: Create SDKs, CLIs, and wrappers that simplify interaction with Filecoin Services.

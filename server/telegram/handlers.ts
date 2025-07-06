@@ -3843,7 +3843,7 @@ async function handleHealthDeviceConnection(
         chatId,
         `✅ *${deviceName} Connected Successfully!*\n\n` +
         `${connectionResult.message}\n\n` +
-        `🔒 *Privacy Notice:* Your health data is processed securely and will be stored on the Flow blockchain using zero-knowledge technology in future updates.\n\n` +
+        `🔒 *Privacy Notice:* Your health data is processed securely and stored on Filecoin's programmable storage layer using zero-knowledge proofs. Data integrity is verified on-chain while keeping your health metrics completely private.\n\n` +
         `You can disconnect your health tracker at any time.`,
         {
           parse_mode: 'Markdown',
