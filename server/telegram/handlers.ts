@@ -209,7 +209,7 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
       break;
     
     case 'connect_health_device':
-      const deviceType = params[0] as 'apple_watch' | 'whoop';
+      const deviceType = params[0] as 'apple_watch' | 'whoop' | 'fitbit' | 'garmin' | 'oura' | 'samsung' | 'other';
       await handleHealthDeviceConnection(bot, chatId, telegramUser, deviceType);
       break;
     
@@ -3652,26 +3652,29 @@ async function handleHealthRecommendations(
     const hasHealthTracking = await isHealthTrackingEnabled(telegramUser.telegramId);
     
     if (!hasHealthTracking) {
-      // User doesn't have health tracking - offer to connect
+      // User doesn't have health tracking - show comprehensive device selection menu
       await bot.sendMessage(
         chatId,
         "🍃 *Health-Tailored Food Recommendations*\n\n" +
-        "Connect your health tracker to get personalized food recommendations based on your:\n\n" +
-        "• Sleep quality and recovery\n" +
+        "Connect your health tracker to get personalized food recommendations based on your real-time health data:\n\n" +
+        "• Sleep quality and recovery scores\n" +
         "• Activity level and calories burned\n" +
-        "• Heart rate variability\n" +
-        "• Stress levels\n" +
-        "• Hydration status\n\n" +
+        "• Heart rate variability (HRV)\n" +
+        "• Stress levels and recovery metrics\n" +
+        "• Hydration status and more\n\n" +
         "Our Flow AI agent will analyze your health data to suggest the perfect meals for your current state.\n\n" +
-        "Which device would you like to connect?",
+        "*Choose your health tracker:*",
         {
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [
-                { text: "⌚ Apple Watch", callback_data: "connect_health_device:apple_watch" },
-                { text: "💪 Whoop", callback_data: "connect_health_device:whoop" }
-              ],
+              [{ text: "⌚ Apple Watch", callback_data: "connect_health_device:apple_watch" }],
+              [{ text: "💪 Whoop Band", callback_data: "connect_health_device:whoop" }],
+              [{ text: "🔥 Fitbit", callback_data: "connect_health_device:fitbit" }],
+              [{ text: "🏃 Garmin", callback_data: "connect_health_device:garmin" }],
+              [{ text: "💓 Oura Ring", callback_data: "connect_health_device:oura" }],
+              [{ text: "📱 Samsung Health", callback_data: "connect_health_device:samsung" }],
+              [{ text: "🔍 Other Device", callback_data: "connect_health_device:other" }],
               [{ text: "⬅️ Back to Menu", callback_data: "menu" }]
             ]
           }
@@ -3786,17 +3789,51 @@ async function handleHealthDeviceConnection(
   bot: TelegramBot,
   chatId: number,
   telegramUser: any,
-  deviceType: 'apple_watch' | 'whoop'
+  deviceType: 'apple_watch' | 'whoop' | 'fitbit' | 'garmin' | 'oura' | 'samsung' | 'other'
 ) {
   try {
-    const deviceName = deviceType === 'apple_watch' ? 'Apple Watch' : 'Whoop';
+    const deviceNames = {
+      apple_watch: 'Apple Watch',
+      whoop: 'Whoop Band',
+      fitbit: 'Fitbit',
+      garmin: 'Garmin',
+      oura: 'Oura Ring',
+      samsung: 'Samsung Health',
+      other: 'Health Tracker'
+    };
     
-    // Show connecting message
-    await bot.sendMessage(
-      chatId,
-      `🔄 Connecting your ${deviceName}...\n\nThis may take a moment while we establish a secure connection.`,
-      { parse_mode: 'Markdown' }
-    );
+    const deviceName = deviceNames[deviceType] || 'Health Tracker';
+    
+    // Show device-specific connection instructions
+    let connectionMessage = `🔄 *Connecting your ${deviceName}...*\n\n`;
+    
+    switch (deviceType) {
+      case 'apple_watch':
+        connectionMessage += "📱 Please ensure your Apple Watch is paired with your iPhone and Health app permissions are enabled.\n\n";
+        break;
+      case 'whoop':
+        connectionMessage += "💪 Please ensure your Whoop app is updated and you're logged into your account.\n\n";
+        break;
+      case 'fitbit':
+        connectionMessage += "🔥 Please ensure your Fitbit app is synced and you're logged into your account.\n\n";
+        break;
+      case 'garmin':
+        connectionMessage += "🏃 Please ensure Garmin Connect is installed and your device is synced.\n\n";
+        break;
+      case 'oura':
+        connectionMessage += "💓 Please ensure your Oura app is updated and your ring is synced.\n\n";
+        break;
+      case 'samsung':
+        connectionMessage += "📱 Please ensure Samsung Health app permissions are enabled.\n\n";
+        break;
+      case 'other':
+        connectionMessage += "📊 We'll guide you through connecting your health tracker.\n\n";
+        break;
+    }
+    
+    connectionMessage += "This may take a moment while we establish a secure connection...";
+    
+    await bot.sendMessage(chatId, connectionMessage, { parse_mode: 'Markdown' });
     
     // Simulate connection process
     const connectionResult = await connectHealthDevice(telegramUser.telegramId, deviceType);
@@ -3944,10 +3981,12 @@ async function handleHealthSettings(
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [
-                { text: "⌚ Connect Apple Watch", callback_data: "connect_health_device:apple_watch" },
-                { text: "💪 Connect Whoop", callback_data: "connect_health_device:whoop" }
-              ],
+              [{ text: "⌚ Apple Watch", callback_data: "connect_health_device:apple_watch" }],
+              [{ text: "💪 Whoop Band", callback_data: "connect_health_device:whoop" }],
+              [{ text: "🔥 Fitbit", callback_data: "connect_health_device:fitbit" }],
+              [{ text: "🏃 Garmin", callback_data: "connect_health_device:garmin" }],
+              [{ text: "💓 Oura Ring", callback_data: "connect_health_device:oura" }],
+              [{ text: "📱 Samsung Health", callback_data: "connect_health_device:samsung" }],
               [{ text: "⬅️ Back to Menu", callback_data: "menu" }]
             ]
           }

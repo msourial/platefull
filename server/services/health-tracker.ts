@@ -108,7 +108,7 @@ export async function isHealthTrackingEnabled(telegramUserId: string): Promise<b
  */
 export async function connectHealthDevice(
   telegramUserId: string, 
-  deviceType: 'apple_watch' | 'whoop'
+  deviceType: 'apple_watch' | 'whoop' | 'fitbit' | 'garmin' | 'oura' | 'samsung' | 'other'
 ): Promise<{ success: boolean; message: string }> {
   try {
     // For demo purposes, simulate successful connection
@@ -116,9 +116,21 @@ export async function connectHealthDevice(
     
     console.log(`[health-tracker] Simulating connection of ${deviceType} for user ${telegramUserId}`);
     
+    const deviceNames = {
+      apple_watch: 'Apple Watch',
+      whoop: 'Whoop Band',
+      fitbit: 'Fitbit',
+      garmin: 'Garmin',
+      oura: 'Oura Ring',
+      samsung: 'Samsung Health',
+      other: 'Health Tracker'
+    };
+    
+    const deviceName = deviceNames[deviceType] || 'Health Tracker';
+    
     return {
       success: true,
-      message: `${deviceType === 'apple_watch' ? 'Apple Watch' : 'Whoop'} connected successfully! Your health data will now be used for personalized food recommendations.`
+      message: `${deviceName} connected successfully! Your health data will now be used for personalized food recommendations.`
     };
   } catch (error) {
     console.error('[health-tracker] Error connecting device:', error);

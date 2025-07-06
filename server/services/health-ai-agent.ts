@@ -131,10 +131,21 @@ Respond in JSON format with:
     let parsedResponse: HealthBasedRecommendation;
     
     try {
-      parsedResponse = JSON.parse(aiResponse.text);
+      // Clean the response to handle markdown code blocks
+      let cleanResponse = aiResponse.text.trim();
+      
+      // Remove markdown code block indicators if present
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      parsedResponse = JSON.parse(cleanResponse);
     } catch (parseError) {
       // Fallback response if JSON parsing fails
       console.error('[health-ai-agent] Failed to parse AI response:', parseError);
+      console.error('[health-ai-agent] Raw AI response:', aiResponse.text);
       
       parsedResponse = {
         recommendedItems: [
