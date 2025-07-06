@@ -1591,18 +1591,36 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
         const flowAmount = conversation.context.flowAmount;
         const totalUSD = conversation.context.totalUSD;
 
-        await bot.sendMessage(
+        // Send initial processing message
+        const processingMessage = await bot.sendMessage(
           chatId,
           `🤖 *Processing Automated Payment...*\n\n` +
           `Wallet: ${userWalletAddress.slice(0, 8)}...${userWalletAddress.slice(-6)}\n` +
           `Amount: ${flowAmount.toFixed(4)} FLOW ($${totalUSD.toFixed(2)} USD)\n\n` +
-          `The AI agent is processing your payment automatically...`,
+          `⏳ The AI agent is processing your payment automatically...`,
           { parse_mode: 'Markdown' }
         );
 
-        // Process automated payment using agent authorization
+        // Process automated payment using agent authorization with retry logic
         const { processAuthorizedAgentPayment, createFlowOrder, awardLoyaltyPoints } = await import('../blockchain/flow/flow');
-        const paymentTxId = await processAuthorizedAgentPayment(userWalletAddress, flowAmount, activeOrder.id);
+        
+        let paymentTxId = null;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        // Retry logic for real transactions
+        while (!paymentTxId && attempts < maxAttempts) {
+          attempts++;
+          try {
+            paymentTxId = await processAuthorizedAgentPayment(userWalletAddress, flowAmount, activeOrder.id);
+            if (paymentTxId) break;
+          } catch (error) {
+            log(`Payment attempt ${attempts} failed: ${error}`, 'telegram-debug');
+            if (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+            }
+          }
+        }
 
         if (paymentTxId) {
           // Create blockchain order record
@@ -1628,14 +1646,24 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
             paymentStatus: 'completed'
           });
 
-          await bot.sendMessage(
-            chatId,
-            `✅ *Payment Successful!*\n\n` +
+          // Check if payment transaction is real vs development mode
+          const isRealTransaction = paymentTxId.length === 66 && paymentTxId.startsWith('0x');
+          
+          let paymentMessage = `✅ *Payment Successful!*\n\n` +
             `🤖 *AI Agent Payment:* ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
             `💰 *Amount:* ${flowAmount.toFixed(4)} FLOW ($${totalUSD.toFixed(2)} USD)\n` +
-            `🪙 *BPTS Tokens Earned:* ${loyaltyTokens} BPTS${totalUSD >= 50 ? ' (1.5x Bonus!)' : ''}\n\n` +
-            `Your order has been placed and processed automatically via AI agent!\n\n` +
-            `We'll notify you when your order is ready for ${activeOrder.isDelivery ? 'delivery' : 'pickup'}.`,
+            `🪙 *BPTS Tokens Earned:* ${loyaltyTokens} BPTS${totalUSD >= 50 ? ' (1.5x Bonus!)' : ''}\n\n`;
+          
+          if (isRealTransaction) {
+            paymentMessage += `🌐 *Testnet Explorer:* https://testnet.flowdiver.io/tx/${paymentTxId}\n\n`;
+          }
+          
+          paymentMessage += `Your order has been placed and processed automatically via AI agent!\n\n` +
+            `We'll notify you when your order is ready for ${activeOrder.isDelivery ? 'delivery' : 'pickup'}.`;
+
+          await bot.sendMessage(
+            chatId,
+            paymentMessage,
             {
               parse_mode: 'Markdown',
               reply_markup: {
@@ -3389,14 +3417,25 @@ async function processAgentAuthorization(
         }
       });
 
+      // Check if transaction is real (length 66) vs development mode (different format)
+      const isRealTransaction = authTxId.length === 66 && authTxId.startsWith('0x');
+      
+      let message = `✅ *AI Agent Authorized Successfully!*\n\n` +
+        `💰 *Spending Limit:* 100 FLOW tokens\n` +
+        `⏰ *Valid for:* 24 hours\n`;
+      
+      if (isRealTransaction) {
+        message += `🔗 *Flow Testnet Transaction:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
+          `🌐 *Testnet Explorer:* https://testnet.flowdiver.io/tx/${authTxId}\n\n` +
+          `The AI agent can now process your Flow payments automatically with real testnet transactions!`;
+      } else {
+        message += `🔗 *Transaction ID:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n\n` +
+          `The AI agent is ready to process your Flow payments automatically!`;
+      }
+
       await bot.sendMessage(
         chatId,
-        `✅ *AI Agent Authorized Successfully!*\n\n` +
-        `🔗 *Flow Testnet Transaction:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
-        `💰 *Spending Limit:* 100 FLOW tokens\n` +
-        `⏰ *Valid for:* 24 hours\n` +
-        `🌐 *Testnet Explorer:* https://testnet.flowdiver.io/tx/${authTxId}\n\n` +
-        `The AI agent can now process your Flow payments automatically with real testnet transactions!`,
+        message,
         {
           parse_mode: 'Markdown',
           reply_markup: {
