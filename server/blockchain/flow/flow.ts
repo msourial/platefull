@@ -1,6 +1,6 @@
 import * as fcl from "@onflow/fcl";
 import * as types from "@onflow/types";
-import { log } from "../vite";
+import { log } from "../../vite";
 import { 
   createRealAgentAuthorization, 
   createRealPaymentTransaction,

@@ -1,4 +1,4 @@
-import { log } from "../vite";
+import { log } from "../../vite";
 
 // Service account configuration
 const SERVICE_ADDRESS = process.env.FLOW_SERVICE_ADDRESS;

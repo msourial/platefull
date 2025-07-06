@@ -4,7 +4,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { HealthMetrics, analyzeHealthForDietaryNeeds, getHealthRecommendationExplanation } from './health-tracker';
+import { HealthMetrics, analyzeHealthForDietaryNeeds, getHealthRecommendationExplanation } from '../integrations/health-tracker';
 
 /*
 <important_code_snippet_instructions>

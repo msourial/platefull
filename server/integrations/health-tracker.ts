@@ -5,7 +5,7 @@
  * Integrates with Filecoin ZK storage for privacy-preserving data storage
  */
 
-import { storeHealthDataOnFilecoin, getFilecoinStorageInfo } from './filecoin-zk-storage';
+import { storeHealthDataOnFilecoin, getFilecoinStorageInfo } from '../blockchain/filecoin/filecoin-zk-storage';
 
 export interface HealthMetrics {
   heartRateVariability: number; // HRV in milliseconds

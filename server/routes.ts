@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { initBot } from "./telegram/bot";
 import { initInstagramBot, processInstagramWebhook, verifyWebhook } from "./instagram/bot";
 import { getRecentOrders, getOrdersByStatus, updateOrderStatus } from "./services/order";
-import { initFlowConnection, verifyFlowAddress, getCustomerLoyaltyPoints, flowToUSD, usdToFlow } from "./services/flow";
+import { initFlowConnection, verifyFlowAddress, getCustomerLoyaltyPoints, flowToUSD, usdToFlow } from "./blockchain/flow/flow";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -267,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User address and spending limit are required" });
       }
 
-      const { authorizeAgentSpending } = await import('./services/flow');
+      const { authorizeAgentSpending } = await import('./blockchain/flow/flow');
       const authTxId = await authorizeAgentSpending(userAddress, spendingLimit, durationHours || 24);
       
       if (authTxId) {
@@ -295,7 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User address is required" });
       }
 
-      const { revokeAgentAuthorization } = await import('./services/flow');
+      const { revokeAgentAuthorization } = await import('./blockchain/flow/flow');
       const success = await revokeAgentAuthorization(userAddress);
       
       if (success) {
@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User address, amount, and order ID are required" });
       }
 
-      const { processAuthorizedAgentPayment } = await import('./services/flow');
+      const { processAuthorizedAgentPayment } = await import('./blockchain/flow/flow');
       const paymentTxId = await processAuthorizedAgentPayment(userAddress, amount, orderId);
       
       if (paymentTxId) {
@@ -655,7 +655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify the wallet address format
-      const { verifyFlowAddress } = await import('./services/flow');
+      const { verifyFlowAddress } = await import('./blockchain/flow/flow');
       const isValidAddress = await verifyFlowAddress(wallet_address);
       
       if (!isValidAddress) {

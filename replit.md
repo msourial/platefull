@@ -18,14 +18,16 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 
 ## Recent Major Updates (January 2025)
 
-### Filecoin ZK Programmable Storage Integration ✓ (January 2025)
-- **Privacy-First Health Data Storage**: Implemented Filecoin's programmable storage layer with zero-knowledge proofs
-- **ZK Privacy Technology**: Health data integrity verified on-chain while keeping metrics completely private
+### File Structure Reorganization & Filecoin ZK Integration ✓ (January 2025)
+- **Logical Domain Organization**: Restructured codebase into blockchain/, ai-agents/, and integrations/ folders
+- **Clear Separation of Concerns**: Better maintainability with grouped related functionality
+- **Updated Import Paths**: All files properly reference new organized structure
+- **Filecoin ZK Programmable Storage**: Complete implementation with zero-knowledge proofs for health data privacy
+- **Privacy-First Health Data Storage**: Implemented Filecoin's programmable storage layer with ZK proofs
 - **Automated Storage Integration**: Health data automatically stored on Filecoin when devices are connected
 - **Smart Contract Verification**: Cryptographic commitments stored on-chain for data integrity verification
 - **USDFC Payment Model**: Supports usage-based billing for Filecoin storage services
 - **Cross-chain Accessibility**: Health data accessible across web3 ecosystems while maintaining privacy
-- **Complete Implementation**: Full service with encryption, ZK proof generation, and on-chain verification
 
 ### Health Tracker Integration with Flow AI Agent ✓ (January 2025)
 - **Complete Health Tracking System**: Implemented Apple Watch and Whoop integration with simulated health data for demo

@@ -5,9 +5,9 @@ import { processNaturalLanguage } from '../services/nlp';
 import { checkForReorderSuggestion, getPersonalizedRecommendations } from '../services/orderHistory';
 import { createOrder, addItemToOrder, removeItemFromOrder, clearOrder } from '../services/order';
 import { processPayment } from '../services/payment';
-import { createFlowOrder, awardLoyaltyPoints, getCustomerLoyaltyPoints, processFlowPayment, mintOrderNFT, verifyFlowAddress } from '../services/flow';
-import { getCurrentHealthMetrics, connectHealthDevice, disconnectHealthTracking, isHealthTrackingEnabled } from '../services/health-tracker';
-import { analyzeHealthForFoodRecommendations, formatHealthRecommendationMessage, checkHealthAlerts } from '../services/health-ai-agent';
+import { createFlowOrder, awardLoyaltyPoints, getCustomerLoyaltyPoints, processFlowPayment, mintOrderNFT, verifyFlowAddress } from '../blockchain/flow/flow';
+import { getCurrentHealthMetrics, connectHealthDevice, disconnectHealthTracking, isHealthTrackingEnabled } from '../integrations/health-tracker';
+import { analyzeHealthForFoodRecommendations, formatHealthRecommendationMessage, checkHealthAlerts } from '../ai-agents/health-ai-agent';
 import { log } from '../vite';
 
 // Helper function to check for potential typos in dietary preferences
@@ -1601,7 +1601,7 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
         );
 
         // Process automated payment using agent authorization
-        const { processAuthorizedAgentPayment, createFlowOrder, awardLoyaltyPoints } = await import('../services/flow');
+        const { processAuthorizedAgentPayment, createFlowOrder, awardLoyaltyPoints } = await import('../blockchain/flow/flow');
         const paymentTxId = await processAuthorizedAgentPayment(userWalletAddress, flowAmount, activeOrder.id);
 
         if (paymentTxId) {
@@ -1618,7 +1618,7 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
           });
 
           // Award BPTS loyalty tokens
-          const { mintLoyaltyTokens, calculateLoyaltyPoints } = await import('../services/flow-loyalty-token');
+          const { mintLoyaltyTokens, calculateLoyaltyPoints } = await import('../blockchain/flow/flow-loyalty-token');
           const loyaltyTokens = calculateLoyaltyPoints(totalUSD, totalUSD >= 50);
           await mintLoyaltyTokens(userWalletAddress, loyaltyTokens, activeOrder.id, 'order');
 
@@ -2984,7 +2984,7 @@ async function handleFlowPayment(
     const total = subtotal + deliveryFee;
     
     // Convert USD to FLOW tokens
-    const { usdToFlow } = await import('../services/flow');
+    const { usdToFlow } = await import('../blockchain/flow/flow');
     const flowAmount = usdToFlow(total);
     
     // Check if user has already authorized the AI agent in this session
@@ -3098,7 +3098,7 @@ async function processFlowWalletAddress(
 ) {
   try {
     // Verify the Flow address
-    const { verifyFlowAddress, processFlowPayment, createFlowOrder, awardLoyaltyPoints } = await import('../services/flow');
+    const { verifyFlowAddress, processFlowPayment, createFlowOrder, awardLoyaltyPoints } = await import('../blockchain/flow/flow');
     
     const isValidAddress = await verifyFlowAddress(address);
     
@@ -3353,7 +3353,7 @@ async function processAgentAuthorization(
 ) {
   try {
     // Verify the address format
-    const { verifyFlowAddress, authorizeAgentSpending } = await import('../services/flow');
+    const { verifyFlowAddress, authorizeAgentSpending } = await import('../blockchain/flow/flow');
     const isValidAddress = await verifyFlowAddress(address);
     
     if (!isValidAddress) {
