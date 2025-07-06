@@ -3690,7 +3690,7 @@ async function handleHealthRecommendations(
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [{ text: "⌚ Apple Watch", callback_data: "connect_health_device:apple_watch" }],
+              [{ text: "🍎 HealthKit", callback_data: "connect_health_device:healthkit" }],
               [{ text: "💪 Whoop Band", callback_data: "connect_health_device:whoop" }],
               [{ text: "🔥 Fitbit", callback_data: "connect_health_device:fitbit" }],
               [{ text: "🏃 Garmin", callback_data: "connect_health_device:garmin" }],
@@ -3824,7 +3824,7 @@ async function showConnectedHealthDevicesStatus(
     if (hasHealthTracking) {
       // Show simulated connected devices (in production, this would come from database)
       statusMessage += "📱 *Connected Devices:*\n";
-      statusMessage += "⌚ Apple Watch - ✅ Active\n";
+      statusMessage += "🍎 HealthKit - ✅ Active\n";
       statusMessage += "💪 Whoop Band - ✅ Synced\n";
       statusMessage += "📊 Health data last updated: Just now\n\n";
       
@@ -3869,11 +3869,11 @@ async function handleHealthDeviceConnection(
   bot: TelegramBot,
   chatId: number,
   telegramUser: any,
-  deviceType: 'apple_watch' | 'whoop' | 'fitbit' | 'garmin' | 'oura' | 'samsung' | 'other'
+  deviceType: 'healthkit' | 'whoop' | 'fitbit' | 'garmin' | 'oura' | 'samsung' | 'other'
 ) {
   try {
     const deviceNames = {
-      apple_watch: 'Apple Watch',
+      healthkit: 'HealthKit',
       whoop: 'Whoop Band',
       fitbit: 'Fitbit',
       garmin: 'Garmin',
@@ -3888,8 +3888,8 @@ async function handleHealthDeviceConnection(
     let connectionMessage = `🔄 *Connecting your ${deviceName}...*\n\n`;
     
     switch (deviceType) {
-      case 'apple_watch':
-        connectionMessage += "📱 Please ensure your Apple Watch is paired with your iPhone and Health app permissions are enabled.\n\n";
+      case 'healthkit':
+        connectionMessage += "📱 Please ensure your iPhone Health app permissions are enabled for data sharing.\n\n";
         break;
       case 'whoop':
         connectionMessage += "💪 Please ensure your Whoop app is updated and you're logged into your account.\n\n";
@@ -4061,7 +4061,7 @@ async function handleHealthSettings(
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [{ text: "⌚ Apple Watch", callback_data: "connect_health_device:apple_watch" }],
+              [{ text: "🍎 HealthKit", callback_data: "connect_health_device:healthkit" }],
               [{ text: "💪 Whoop Band", callback_data: "connect_health_device:whoop" }],
               [{ text: "🔥 Fitbit", callback_data: "connect_health_device:fitbit" }],
               [{ text: "🏃 Garmin", callback_data: "connect_health_device:garmin" }],

@@ -1,6 +1,6 @@
 /**
  * Health Tracker Integration Service
- * Simulates Apple Watch and Whoop health data for demo purposes
+ * Simulates HealthKit and Whoop health data for demo purposes
  * In production, this would integrate with real HealthKit and Whoop APIs
  * Integrates with Filecoin ZK storage for privacy-preserving data storage
  */
@@ -26,7 +26,7 @@ export interface HealthMetrics {
 export interface HealthDevice {
   id: string;
   name: string;
-  type: 'apple_watch' | 'whoop' | 'fitbit' | 'garmin';
+  type: 'healthkit' | 'whoop' | 'fitbit' | 'garmin';
   isConnected: boolean;
   lastSync: Date;
 }
@@ -114,7 +114,7 @@ export async function isHealthTrackingEnabled(telegramUserId: string): Promise<b
  */
 export async function connectHealthDevice(
   telegramUserId: string, 
-  deviceType: 'apple_watch' | 'whoop' | 'fitbit' | 'garmin' | 'oura' | 'samsung' | 'other'
+  deviceType: 'healthkit' | 'whoop' | 'fitbit' | 'garmin' | 'oura' | 'samsung' | 'other'
 ): Promise<{ success: boolean; message: string }> {
   try {
     // For demo purposes, simulate successful connection
@@ -128,7 +128,7 @@ export async function connectHealthDevice(
     }
     
     const deviceNames = {
-      apple_watch: 'Apple Watch',
+      healthkit: 'HealthKit',
       whoop: 'Whoop Band',
       fitbit: 'Fitbit',
       garmin: 'Garmin',
