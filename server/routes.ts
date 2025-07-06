@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         converted, 
         from, 
         to,
-        rate: from === "USD" ? 1/0.75 : 0.75
+        rate: from === "USD" ? 1/0.3283 : 0.3283
       });
     } catch (error) {
       log(`Error converting currency: ${error}`, "flow-error");

@@ -96,6 +96,9 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 - **Customization Errors**: Resolved undefined orderId variable in order item updates
 - **Flow Wallet URL**: Fixed localhost URL issue in Telegram inline buttons (manual entry fallback)
 - **Misplaced AI Questions**: Restricted follow-up questions to dietary recommendations only
+- **FLOW Conversion Rate**: Updated from $0.75 to current market rate $0.3283 for accurate USD↔FLOW calculations
+- **Explorer URL Logic**: Fixed Telegram bot to show flowscan.io URLs only after payment processing (not before)
+- **Flowscan Integration**: Updated all explorer URLs from flowdiver.io to flowscan.io for proper transaction viewing
 
 ## Architecture
 

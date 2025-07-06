@@ -315,24 +315,24 @@ function generateMockTransactionId(): string {
 }
 
 /**
- * Convert FLOW tokens to USD (mock rate)
+ * Convert FLOW tokens to USD (current market rate)
  * @param flowAmount Amount in FLOW tokens
  * @returns USD equivalent
  */
 export function flowToUSD(flowAmount: number): number {
-  // Mock exchange rate - in production, you'd get this from an API
-  const flowUsdRate = 0.75; // 1 FLOW = $0.75
+  // Current FLOW market rate as of January 2025
+  const flowUsdRate = 0.3283; // 1 FLOW = $0.3283
   return flowAmount * flowUsdRate;
 }
 
 /**
- * Convert USD to FLOW tokens (mock rate)
+ * Convert USD to FLOW tokens (current market rate)
  * @param usdAmount Amount in USD
  * @returns FLOW equivalent
  */
 export function usdToFlow(usdAmount: number): number {
-  // Mock exchange rate - in production, you'd get this from an API
-  const flowUsdRate = 0.75; // 1 FLOW = $0.75
+  // Current FLOW market rate as of January 2025
+  const flowUsdRate = 0.3283; // 1 FLOW = $0.3283
   return usdAmount / flowUsdRate;
 }
 

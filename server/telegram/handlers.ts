@@ -1648,7 +1648,7 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
 
           let paymentMessage = `✅ *Payment Successful!*\n\n` +
             `🤖 *AI Agent Payment:* ${paymentTxId.slice(0, 8)}...${paymentTxId.slice(-6)}\n` +
-            `🌐 *Testnet Explorer:* https://testnet.flowdiver.io/tx/${paymentTxId}\n` +
+            `🌐 *Testnet Explorer:* https://flowscan.io/transaction/${paymentTxId}\n` +
             `💰 *Amount:* ${flowAmount.toFixed(4)} FLOW ($${totalUSD.toFixed(2)} USD)\n` +
             `🪙 *BPTS Tokens Earned:* ${loyaltyTokens} BPTS${totalUSD >= 50 ? ' (1.5x Bonus!)' : ''}\n\n` +
             `Your order has been placed and processed automatically via AI agent!\n\n` +
@@ -3412,7 +3412,7 @@ async function processAgentAuthorization(
 
       let message = `✅ *AI Agent Authorized Successfully!*\n\n` +
         `🔗 *Flow Testnet Transaction:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
-        `🌐 *Testnet Explorer:* https://testnet.flowdiver.io/tx/${authTxId}\n` +
+        `🌐 *Testnet Explorer:* https://flowscan.io/transaction/${authTxId}\n` +
         `💰 *Spending Limit:* 100 FLOW tokens\n` +
         `⏰ *Valid for:* 24 hours\n\n` +
         `The AI agent can now process your Flow payments automatically!`;
