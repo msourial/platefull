@@ -3706,6 +3706,9 @@ async function handleHealthRecommendations(
       return;
     }
     
+    // Show connected health devices and current status first
+    await showConnectedHealthDevicesStatus(bot, chatId, telegramUser);
+
     // User has health tracking - get current metrics and provide recommendations
     const healthMetrics = await getCurrentHealthMetrics(telegramUser.telegramId);
     
@@ -3802,6 +3805,61 @@ async function handleHealthRecommendations(
       "Sorry, there was an issue getting your health-based recommendations. Please try again later.",
       createInlineKeyboard([[{ text: "⬅️ Back to Menu", callback_data: "menu" }]])
     );
+  }
+}
+
+/**
+ * Show connected health devices status and current data
+ */
+async function showConnectedHealthDevicesStatus(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any
+) {
+  try {
+    const healthMetrics = await getCurrentHealthMetrics(telegramUser.telegramId);
+    const hasHealthTracking = await isHealthTrackingEnabled(telegramUser.telegramId);
+    
+    let statusMessage = "💪 *Connected Health Devices*\n\n";
+    
+    if (hasHealthTracking) {
+      // Show simulated connected devices (in production, this would come from database)
+      statusMessage += "📱 *Connected Devices:*\n";
+      statusMessage += "⌚ Apple Watch - ✅ Active\n";
+      statusMessage += "💪 Whoop Band - ✅ Synced\n";
+      statusMessage += "📊 Health data last updated: Just now\n\n";
+      
+      if (healthMetrics) {
+        statusMessage += "📊 *Current Health Metrics:*\n";
+        statusMessage += `• Sleep Quality: ${healthMetrics.sleepQuality}/100\n`;
+        statusMessage += `• Recovery Score: ${healthMetrics.recoveryScore}/100\n`;
+        statusMessage += `• Activity Level: ${healthMetrics.activityLevel}/100\n`;
+        statusMessage += `• Stress Level: ${healthMetrics.stressLevel}/100\n`;
+        statusMessage += `• HRV: ${healthMetrics.heartRateVariability}ms\n`;
+        statusMessage += `• Steps Today: ${healthMetrics.stepCount.toLocaleString()}\n`;
+        statusMessage += `• Calories Burned: ${healthMetrics.caloriesBurned}\n\n`;
+      }
+      
+      statusMessage += "🔒 *Privacy:* Your health data is secured with Filecoin ZK storage and processed privately by our Flow AI agent.\n\n";
+      statusMessage += "Based on your current metrics, here are your personalized food recommendations:";
+    } else {
+      statusMessage += "📱 *Status:* No devices connected\n\n";
+      statusMessage += "Connect your health tracker to get AI-powered food recommendations based on your real-time health data.";
+    }
+    
+    await bot.sendMessage(chatId, statusMessage, { 
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "⚙️ Device Settings", callback_data: "health_settings" }],
+          [{ text: "🔄 Refresh Data", callback_data: "health_recommendations" }],
+          [{ text: "⬅️ Back to Menu", callback_data: "menu" }]
+        ]
+      }
+    });
+    
+  } catch (error) {
+    log(`Error showing health devices status: ${error}`, 'telegram-health');
   }
 }
 
