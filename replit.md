@@ -18,6 +18,17 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 
 ## Recent Major Updates (January 2025)
 
+### Health Tracker Integration with Flow AI Agent ✓ (January 2025)
+- **Complete Health Tracking System**: Implemented Apple Watch and Whoop integration with simulated health data for demo
+- **Flow AI Agent Health Analysis**: New specialized AI agent using Anthropic Claude 4.0 for personalized food recommendations
+- **Real-time Health Metrics**: Tracks sleep quality, HRV, stress levels, activity, recovery scores, and hydration
+- **Health-Based Recommendations**: AI analyzes current health status to suggest optimal food choices with detailed explanations
+- **Telegram Bot Integration**: Added "🍃 Tailored to Your Health" option in welcome menu with full conversation flow
+- **Privacy-First Design**: Built with ZK privacy for future on-chain health data storage, opt-in/opt-out anytime
+- **Demo-Ready System**: Simulates realistic health data patterns based on time of day for comprehensive testing
+
+## Recent Major Updates (January 2025)
+
 ### Flow Blockchain Development Mode ✓ (January 2025)
 - **Comprehensive Development System**: Implemented robust Flow testnet integration with proper transaction format validation
 - **Real Testnet Connection**: System connects to Flow testnet, retrieves current block data, and validates transaction formats

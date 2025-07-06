@@ -6,6 +6,8 @@ import { checkForReorderSuggestion, getPersonalizedRecommendations } from '../se
 import { createOrder, addItemToOrder, removeItemFromOrder, clearOrder } from '../services/order';
 import { processPayment } from '../services/payment';
 import { createFlowOrder, awardLoyaltyPoints, getCustomerLoyaltyPoints, processFlowPayment, mintOrderNFT, verifyFlowAddress } from '../services/flow';
+import { getCurrentHealthMetrics, connectHealthDevice, disconnectHealthTracking, isHealthTrackingEnabled } from '../services/health-tracker';
+import { analyzeHealthForFoodRecommendations, formatHealthRecommendationMessage, checkHealthAlerts } from '../services/health-ai-agent';
 import { log } from '../vite';
 
 // Helper function to check for potential typos in dietary preferences
@@ -200,6 +202,23 @@ export async function handleCallbackQuery(bot: TelegramBot, query: TelegramBot.C
     case 'menu':
       await sendMenuCategories(chatId);
       await storage.updateConversation(conversation.id, { state: 'menu_selection' });
+      break;
+    
+    case 'health_recommendations':
+      await handleHealthRecommendations(bot, chatId, telegramUser, conversation);
+      break;
+    
+    case 'connect_health_device':
+      const deviceType = params[0] as 'apple_watch' | 'whoop';
+      await handleHealthDeviceConnection(bot, chatId, telegramUser, deviceType);
+      break;
+    
+    case 'disconnect_health':
+      await handleHealthDisconnection(bot, chatId, telegramUser);
+      break;
+    
+    case 'health_settings':
+      await handleHealthSettings(bot, chatId, telegramUser);
       break;
       
     case 'menu_item':
@@ -1679,6 +1698,7 @@ async function sendWelcomeMessage(bot: TelegramBot, chatId: number) {
   let keyboardButtons = [
     [{ text: "📋 Browse Menu Categories", callback_data: "menu" }],
     [{ text: "👤 Personalized For You", callback_data: "personal_recommendations" }],
+    [{ text: "🍃 Tailored to Your Health", callback_data: "health_recommendations" }],
     [{ text: "🍽️ I Know What I Want", callback_data: "direct_order" }],
     [{ text: "🔍 Recommend Something", callback_data: "special_request" }]
   ];
@@ -3614,6 +3634,333 @@ async function finalizeOrder(
         [{ text: "🛒 View Order", callback_data: "view_order" }],
         [{ text: "🔄 Start Over", callback_data: "menu" }]
       ])
+    );
+  }
+}
+
+/**
+ * Handle health recommendations request
+ */
+async function handleHealthRecommendations(
+  bot: TelegramBot, 
+  chatId: number, 
+  telegramUser: any, 
+  conversation: any
+) {
+  try {
+    // Check if user has health tracking enabled
+    const hasHealthTracking = await isHealthTrackingEnabled(telegramUser.telegramId);
+    
+    if (!hasHealthTracking) {
+      // User doesn't have health tracking - offer to connect
+      await bot.sendMessage(
+        chatId,
+        "🍃 *Health-Tailored Food Recommendations*\n\n" +
+        "Connect your health tracker to get personalized food recommendations based on your:\n\n" +
+        "• Sleep quality and recovery\n" +
+        "• Activity level and calories burned\n" +
+        "• Heart rate variability\n" +
+        "• Stress levels\n" +
+        "• Hydration status\n\n" +
+        "Our Flow AI agent will analyze your health data to suggest the perfect meals for your current state.\n\n" +
+        "Which device would you like to connect?",
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "⌚ Apple Watch", callback_data: "connect_health_device:apple_watch" },
+                { text: "💪 Whoop", callback_data: "connect_health_device:whoop" }
+              ],
+              [{ text: "⬅️ Back to Menu", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
+      return;
+    }
+    
+    // User has health tracking - get current metrics and provide recommendations
+    const healthMetrics = await getCurrentHealthMetrics(telegramUser.telegramId);
+    
+    if (!healthMetrics) {
+      await bot.sendMessage(
+        chatId,
+        "⚠️ Unable to retrieve your current health data. Please ensure your device is synced and try again.",
+        createInlineKeyboard([
+          [{ text: "🔄 Try Again", callback_data: "health_recommendations" }],
+          [{ text: "⚙️ Device Settings", callback_data: "health_settings" }],
+          [{ text: "⬅️ Back to Menu", callback_data: "menu" }]
+        ])
+      );
+      return;
+    }
+    
+    // Check for any health alerts
+    const healthAlerts = checkHealthAlerts(healthMetrics);
+    if (healthAlerts.length > 0) {
+      await bot.sendMessage(
+        chatId,
+        `🚨 *Health Alerts*\n\n${healthAlerts.join('\n')}`,
+        { parse_mode: 'Markdown' }
+      );
+    }
+    
+    // Get available menu items
+    const menuItems = await storage.getMenuItems();
+    
+    // Analyze health data and get recommendations
+    const healthRecommendation = await analyzeHealthForFoodRecommendations(
+      healthMetrics,
+      menuItems.map(item => ({
+        ...item,
+        category: { id: item.categoryId, name: item.category?.name || 'Unknown' }
+      }))
+    );
+    
+    // Format and send health-based recommendations
+    const recommendationMessage = formatHealthRecommendationMessage(healthRecommendation, healthMetrics);
+    
+    await bot.sendMessage(chatId, recommendationMessage, { parse_mode: 'Markdown' });
+    
+    // Show recommended items with add buttons
+    if (healthRecommendation.recommendedItems.length > 0) {
+      await bot.sendMessage(
+        chatId,
+        "*Ready to order?* Here are your health-optimized recommendations:",
+        { parse_mode: 'Markdown' }
+      );
+      
+      for (const recommendation of healthRecommendation.recommendedItems.slice(0, 3)) {
+        // Find the actual menu item
+        const menuItem = menuItems.find(item => 
+          item.name.toLowerCase().includes(recommendation.name.toLowerCase()) ||
+          recommendation.name.toLowerCase().includes(item.name.toLowerCase())
+        );
+        
+        if (menuItem) {
+          await bot.sendMessage(
+            chatId,
+            `*${menuItem.name}* - $${parseFloat(menuItem.price.toString()).toFixed(2)}\n` +
+            `${menuItem.description || ''}\n\n` +
+            `🎯 *Health Benefits:* ${recommendation.healthBenefits.join(', ')}\n` +
+            `💡 *Why recommended:* ${recommendation.whyRecommended}`,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "🛒 Add to Order", callback_data: `add_item:${menuItem.id}` }]
+                ]
+              }
+            }
+          );
+        }
+      }
+    }
+    
+    // Add navigation options
+    await bot.sendMessage(
+      chatId,
+      "What would you like to do next?",
+      createInlineKeyboard([
+        [{ text: "🛒 View Full Menu", callback_data: "menu" }],
+        [{ text: "🔄 Refresh Health Data", callback_data: "health_recommendations" }],
+        [{ text: "⚙️ Health Settings", callback_data: "health_settings" }]
+      ])
+    );
+    
+  } catch (error) {
+    log(`Error handling health recommendations: ${error}`, 'telegram-health');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue getting your health-based recommendations. Please try again later.",
+      createInlineKeyboard([[{ text: "⬅️ Back to Menu", callback_data: "menu" }]])
+    );
+  }
+}
+
+/**
+ * Handle health device connection
+ */
+async function handleHealthDeviceConnection(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any,
+  deviceType: 'apple_watch' | 'whoop'
+) {
+  try {
+    const deviceName = deviceType === 'apple_watch' ? 'Apple Watch' : 'Whoop';
+    
+    // Show connecting message
+    await bot.sendMessage(
+      chatId,
+      `🔄 Connecting your ${deviceName}...\n\nThis may take a moment while we establish a secure connection.`,
+      { parse_mode: 'Markdown' }
+    );
+    
+    // Simulate connection process
+    const connectionResult = await connectHealthDevice(telegramUser.telegramId, deviceType);
+    
+    if (connectionResult.success) {
+      await bot.sendMessage(
+        chatId,
+        `✅ *${deviceName} Connected Successfully!*\n\n` +
+        `${connectionResult.message}\n\n` +
+        `🔒 *Privacy Notice:* Your health data is processed securely and will be stored on the Flow blockchain using zero-knowledge technology in future updates.\n\n` +
+        `You can disconnect your health tracker at any time.`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🍃 Get Health Recommendations", callback_data: "health_recommendations" }],
+              [{ text: "⚙️ Health Settings", callback_data: "health_settings" }],
+              [{ text: "🍔 Browse Menu", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
+    } else {
+      await bot.sendMessage(
+        chatId,
+        `❌ *Connection Failed*\n\n${connectionResult.message}`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🔄 Try Again", callback_data: `connect_health_device:${deviceType}` }],
+              [{ text: "⬅️ Back", callback_data: "health_recommendations" }]
+            ]
+          }
+        }
+      );
+    }
+    
+  } catch (error) {
+    log(`Error connecting health device: ${error}`, 'telegram-health');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue connecting your health device. Please try again later.",
+      createInlineKeyboard([[{ text: "⬅️ Back", callback_data: "health_recommendations" }]])
+    );
+  }
+}
+
+/**
+ * Handle health tracking disconnection
+ */
+async function handleHealthDisconnection(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any
+) {
+  try {
+    const success = await disconnectHealthTracking(telegramUser.telegramId);
+    
+    if (success) {
+      await bot.sendMessage(
+        chatId,
+        "✅ *Health Tracking Disconnected*\n\n" +
+        "Your health devices have been disconnected and we will no longer access your health data.\n\n" +
+        "You can reconnect anytime to get personalized health-based food recommendations.",
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🍃 Reconnect Health Tracking", callback_data: "health_recommendations" }],
+              [{ text: "🍔 Browse Menu", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
+    } else {
+      await bot.sendMessage(
+        chatId,
+        "❌ There was an issue disconnecting your health tracking. Please try again.",
+        createInlineKeyboard([[{ text: "🔄 Try Again", callback_data: "disconnect_health" }]])
+      );
+    }
+    
+  } catch (error) {
+    log(`Error disconnecting health tracking: ${error}`, 'telegram-health');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue disconnecting your health tracking. Please try again later."
+    );
+  }
+}
+
+/**
+ * Handle health settings menu
+ */
+async function handleHealthSettings(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUser: any
+) {
+  try {
+    const hasHealthTracking = await isHealthTrackingEnabled(telegramUser.telegramId);
+    
+    if (hasHealthTracking) {
+      // Show current health data and settings
+      const healthMetrics = await getCurrentHealthMetrics(telegramUser.telegramId);
+      
+      let statusMessage = "⚙️ *Health Tracker Settings*\n\n";
+      statusMessage += "📱 *Status:* Connected and Active\n\n";
+      
+      if (healthMetrics) {
+        statusMessage += "📊 *Latest Health Data:*\n";
+        statusMessage += `• Sleep Quality: ${healthMetrics.sleepQuality}/100\n`;
+        statusMessage += `• Recovery Score: ${healthMetrics.recoveryScore}/100\n`;
+        statusMessage += `• Activity Level: ${healthMetrics.activityLevel}/100\n`;
+        statusMessage += `• Stress Level: ${healthMetrics.stressLevel}/100\n`;
+        statusMessage += `• HRV: ${healthMetrics.heartRateVariability}ms\n`;
+        statusMessage += `• Last Updated: ${healthMetrics.timestamp.toLocaleTimeString()}\n\n`;
+      }
+      
+      statusMessage += "🔒 *Privacy:* Your data is processed securely and will be stored using zero-knowledge proofs on Flow blockchain in future updates.";
+      
+      await bot.sendMessage(
+        chatId,
+        statusMessage,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🔄 Refresh Health Data", callback_data: "health_recommendations" }],
+              [{ text: "🍃 Get Recommendations", callback_data: "health_recommendations" }],
+              [{ text: "🔌 Disconnect Device", callback_data: "disconnect_health" }],
+              [{ text: "⬅️ Back to Menu", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
+    } else {
+      await bot.sendMessage(
+        chatId,
+        "⚙️ *Health Tracker Settings*\n\n" +
+        "📱 *Status:* Not Connected\n\n" +
+        "Connect your health tracker to get personalized food recommendations based on your real-time health data.",
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "⌚ Connect Apple Watch", callback_data: "connect_health_device:apple_watch" },
+                { text: "💪 Connect Whoop", callback_data: "connect_health_device:whoop" }
+              ],
+              [{ text: "⬅️ Back to Menu", callback_data: "menu" }]
+            ]
+          }
+        }
+      );
+    }
+    
+  } catch (error) {
+    log(`Error handling health settings: ${error}`, 'telegram-health');
+    await bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue accessing your health settings. Please try again later.",
+      createInlineKeyboard([[{ text: "⬅️ Back to Menu", callback_data: "menu" }]])
     );
   }
 }
