@@ -508,7 +508,9 @@ function isHealthBasedMealRequest(text: string): boolean {
     /customiz\w* (?:meal|food|lunch|dinner|breakfast) based on (?:my )?(?:health|healthkit|apple watch|fitness)/i,
     /(?:meal|food|lunch|dinner|breakfast) (?:recommendation|suggestion) based on (?:my )?(?:health|healthkit|fitness)/i,
     /(?:personalized|custom) (?:meal|food) (?:using|with|from) (?:my )?(?:health|healthkit|fitness)/i,
-    /(?:food|meal) (?:for|based on) (?:my )?(?:health|fitness|wellness) (?:data|metrics)/i
+    /(?:food|meal) (?:for|based on) (?:my )?(?:health|fitness|wellness) (?:data|metrics)/i,
+    /(?:lunch|dinner|breakfast|meal|food) (?:personlized|personalized) for me based on (?:my )?(?:health|healthkit|fitness)/i,
+    /(?:i want|i would like) (?:a|an) (?:lunch|dinner|breakfast|meal|food) (?:personlized|personalized) (?:for me )?based on (?:my )?(?:health|healthkit|fitness)/i
   ];
   
   const hasHealthMealPattern = healthMealPatterns.some(pattern => pattern.test(normalizedText));
@@ -549,6 +551,12 @@ function extractCategory(text: string): string | undefined {
 }
 
 async function extractOrderItem(text: string, conversationId?: number): Promise<{ item: string, specialInstructions?: string } | undefined> {
+  // First check if this is a health-based meal request - if so, don't treat it as a regular order
+  if (isHealthBasedMealRequest(text)) {
+    log(`Skipping order extraction for health-based meal request: "${text}"`, 'nlp-service-debug');
+    return undefined;
+  }
+  
   // Check common patterns for ordering food first
   const orderPatterns = [
     /can i (?:have|get|order) (?:a|an|some|the)? (.+?)(?:\s+with\s+(.+))?$/i,  // Can I have a chicken shawarma with garlic sauce

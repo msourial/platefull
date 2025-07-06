@@ -100,11 +100,13 @@ An innovative AI-powered multi-platform food ordering application for Boustan Le
 - **Explorer URL Logic**: Fixed Telegram bot to show flowscan.io URLs only after payment processing (not before)
 - **Flowscan Integration**: Updated all explorer URLs from flowdiver.io to flowscan.io for proper transaction viewing
 - **HealthKit Terminology**: Updated "Apple Watch" references to technically accurate "HealthKit" across codebase
-- **Natural Language Health Requests**: Added intelligent detection for health-based meal requests in conversational flow
+- **Natural Language Health Requests**: Fixed health-based meal request detection in conversational flow ✓
   - Enhanced NLP service with comprehensive health + meal keyword pattern matching
   - Added "health_meal_request" intent handling in Telegram bot
+  - Fixed order extraction function to skip health-based requests and prevent false matches
   - Users can now naturally ask "I want a customized meal based on my HealthKit data"
   - Bot properly guides users to connect HealthKit before providing health-based recommendations
+  - Added specific patterns for common typos like "personlized" instead of "personalized"
 
 ## Architecture
 
