@@ -154,14 +154,23 @@ export async function processRealAgentPayment(
     );
     
     if (transactionId) {
-      log(`[flow-testnet] ✅ Real Payment Transaction Submitted!`, 'flow-testnet');
+      // Check if it's a real transaction (not development mode)
+      const isRealTransaction = !transactionId.includes('dev') && transactionId.length === 66;
+      
+      log(`[flow-testnet] ✅ Payment Transaction Submitted!`, 'flow-testnet');
       log(`[flow-testnet]   Transaction ID: ${transactionId}`, 'flow-testnet');
       log(`[flow-testnet]   From Wallet: ${fromAddress}`, 'flow-testnet');
       log(`[flow-testnet]   To Restaurant: ${toAddress}`, 'flow-testnet');
       log(`[flow-testnet]   Amount: ${amount} FLOW`, 'flow-testnet');
       log(`[flow-testnet]   Order ID: ${orderId}`, 'flow-testnet');
-      log(`[flow-testnet]   Flowscan: https://testnet.flowscan.org/transaction/${transactionId}`, 'flow-testnet');
-      log(`[flow-testnet]   FlowDiver: https://testnet.flowdiver.io/tx/${transactionId}`, 'flow-testnet');
+      
+      // ONLY show explorer URLs for real Flow testnet transactions
+      if (isRealTransaction) {
+        log(`[flow-testnet]   ✅ REAL TRANSACTION - View on Flowscan: https://testnet.flowscan.org/transaction/${transactionId}`, 'flow-testnet');
+        log(`[flow-testnet]   ✅ REAL TRANSACTION - View on FlowDiver: https://testnet.flowdiver.io/tx/${transactionId}`, 'flow-testnet');
+      } else {
+        log(`[flow-testnet]   📝 Development Mode - No explorer URL (transaction not on blockchain)`, 'flow-testnet');
+      }
       
       return transactionId;
     } else {

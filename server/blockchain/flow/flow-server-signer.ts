@@ -192,23 +192,23 @@ export async function submitRealFlowPayment(
     const result = await response.json();
     const transactionId = result.id;
 
-    log(`[flow-server-signer] ✅ Real Flow Transaction Submitted!`, 'flow-server-signer');
+    // ONLY log explorer URLs for REAL transactions that succeeded
+    log(`[flow-server-signer] ✅ REAL FLOW TRANSACTION SUBMITTED SUCCESSFULLY!`, 'flow-server-signer');
     log(`[flow-server-signer]   Transaction ID: ${transactionId}`, 'flow-server-signer');
     log(`[flow-server-signer]   From: ${fromAddress}`, 'flow-server-signer');
     log(`[flow-server-signer]   To: ${toAddress}`, 'flow-server-signer');
     log(`[flow-server-signer]   Amount: ${amount} FLOW`, 'flow-server-signer');
     log(`[flow-server-signer]   Order ID: ${orderId}`, 'flow-server-signer');
     log(`[flow-server-signer]   Block Height: ${blockHeight}`, 'flow-server-signer');
-    log(`[flow-server-signer]   Flowscan: https://testnet.flowscan.org/transaction/${transactionId}`, 'flow-server-signer');
-    log(`[flow-server-signer]   FlowDiver: https://testnet.flowdiver.io/tx/${transactionId}`, 'flow-server-signer');
+    log(`[flow-server-signer]   ✅ View on Flowscan: https://testnet.flowscan.org/transaction/${transactionId}`, 'flow-server-signer');
+    log(`[flow-server-signer]   ✅ View on FlowDiver: https://testnet.flowdiver.io/tx/${transactionId}`, 'flow-server-signer');
 
     return transactionId;
   } catch (error) {
     log(`[flow-server-signer] Error submitting transaction: ${error}`, 'flow-error');
     
-    // Generate development mode transaction ID for fallback
-    const devTxId = generateDevelopmentTxId(fromAddress, toAddress, amount, orderId);
-    return devTxId;
+    // Development mode fallback - generateDevelopmentTxId already logs details
+    return generateDevelopmentTxId(fromAddress, toAddress, amount, orderId);
   }
 }
 
