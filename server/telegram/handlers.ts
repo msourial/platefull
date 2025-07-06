@@ -3412,7 +3412,6 @@ async function processAgentAuthorization(
 
       let message = `✅ *AI Agent Authorized Successfully!*\n\n` +
         `🔗 *Flow Testnet Transaction:* ${authTxId.slice(0, 8)}...${authTxId.slice(-6)}\n` +
-        `🌐 *Testnet Explorer:* https://flowscan.io/transaction/${authTxId}\n` +
         `💰 *Spending Limit:* 100 FLOW tokens\n` +
         `⏰ *Valid for:* 24 hours\n\n` +
         `The AI agent can now process your Flow payments automatically!`;
