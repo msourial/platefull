@@ -89,13 +89,7 @@ USER PREFERENCES: ${userPreferences?.join(', ') || 'None specified'}
 
 CURRENT TIME: ${new Date().toLocaleTimeString()}
 
-Please provide personalized food recommendations based on the health data. Consider:
-1. Current recovery and energy needs
-2. Stress levels and their impact on digestion
-3. Sleep quality and its effect on metabolism
-4. Activity level and caloric needs
-5. Hydration status
-6. Time of day for optimal meal timing
+Provide personalized food recommendations based on the health data. KEEP YOUR EXPLANATION VERY SHORT AND SIMPLE - maximum 2 sentences. Focus only on the most important health insight that drives your recommendations.
 
 Respond in JSON format with:
 {
@@ -109,14 +103,14 @@ Respond in JSON format with:
   ],
   "avoidItems": ["items to avoid based on current health status"],
   "mealTiming": "optimal timing advice",
-  "explanation": "comprehensive explanation of recommendations based on specific health metrics",
+  "explanation": "brief, easy-to-read explanation in 2-3 simple sentences focusing on key health insights",
   "confidence": 0.85
 }`;
 
     const response = await anthropic.messages.create({
       model: DEFAULT_MODEL_STR, // "claude-sonnet-4-20250514"
-      max_tokens: 2000,
-      system: `You are a specialized health and nutrition AI agent integrated with Flow blockchain technology. You analyze real-time health data from Apple Watch and Whoop devices to provide personalized food recommendations. Your responses are evidence-based and reference specific health metrics. Always explain the reasoning behind recommendations using the actual health data provided.`,
+      max_tokens: 1500,
+      system: `You are a health and nutrition AI providing personalized food recommendations based on real-time health data. Keep explanations VERY brief and conversational - maximum 2-3 simple sentences. Focus on the most important health insights only. Avoid technical jargon and lengthy explanations. Use simple, everyday language that anyone can understand.`,
       messages: [
         { role: 'user', content: prompt }
       ],
