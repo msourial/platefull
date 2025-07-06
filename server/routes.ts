@@ -704,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/loyalty/balance/:address', async (req, res) => {
     try {
       const { address } = req.params;
-      const { getLoyaltyBalance, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      const { getLoyaltyBalance, validateFlowAddress } = await import('./blockchain/flow/flow-loyalty-token');
       
       if (!validateFlowAddress(address)) {
         return res.status(400).json({ error: 'Invalid Flow address format' });
@@ -721,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/loyalty/transactions/:address', async (req, res) => {
     try {
       const { address } = req.params;
-      const { getLoyaltyTransactionHistory, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      const { getLoyaltyTransactionHistory, validateFlowAddress } = await import('./blockchain/flow/flow-loyalty-token');
       
       if (!validateFlowAddress(address)) {
         return res.status(400).json({ error: 'Invalid Flow address format' });
@@ -737,7 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/loyalty/info', async (req, res) => {
     try {
-      const { getLoyaltyTokenInfo } = await import('./services/flow-loyalty-token');
+      const { getLoyaltyTokenInfo } = await import('./blockchain/flow/flow-loyalty-token');
       const tokenInfo = getLoyaltyTokenInfo();
       res.json(tokenInfo);
     } catch (error: any) {
@@ -749,7 +749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/loyalty/transfer', async (req, res) => {
     try {
       const { fromAddress, toAddress, amount } = req.body;
-      const { transferLoyaltyTokens, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      const { transferLoyaltyTokens, validateFlowAddress } = await import('./blockchain/flow/flow-loyalty-token');
       
       if (!validateFlowAddress(fromAddress) || !validateFlowAddress(toAddress)) {
         return res.status(400).json({ error: 'Invalid Flow address format' });
@@ -770,7 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/loyalty/redeem', async (req, res) => {
     try {
       const { userAddress, amount, rewardDescription } = req.body;
-      const { redeemLoyaltyTokens, validateFlowAddress } = await import('./services/flow-loyalty-token');
+      const { redeemLoyaltyTokens, validateFlowAddress } = await import('./blockchain/flow/flow-loyalty-token');
       
       if (!validateFlowAddress(userAddress)) {
         return res.status(400).json({ error: 'Invalid Flow address format' });

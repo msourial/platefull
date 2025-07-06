@@ -1,4 +1,4 @@
-import { log } from '../vite';
+import { log } from '../../vite';
 
 /**
  * Flow Loyalty Token Service
