@@ -186,7 +186,7 @@ Respond in JSON format with:
 }
 
 /**
- * Generate a health-optimized menu recommendation message
+ * Generate a food recommendation message based on health data
  */
 export function formatHealthRecommendationMessage(
   recommendation: HealthBasedRecommendation,
@@ -194,7 +194,7 @@ export function formatHealthRecommendationMessage(
 ): string {
   const { recommendedItems, explanation, confidence } = recommendation;
   
-  let message = `🍃 *Health-Optimized Recommendations*\n\n`;
+  let message = `🍃 *Food Recommendations Based on Health*\n\n`;
   
   // Add health metrics summary
   message += `📊 *Your Current Health Status:*\n`;

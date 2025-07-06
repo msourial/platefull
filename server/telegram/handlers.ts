@@ -1698,7 +1698,7 @@ async function sendWelcomeMessage(bot: TelegramBot, chatId: number) {
   let keyboardButtons = [
     [{ text: "📋 Browse Menu Categories", callback_data: "menu" }],
     [{ text: "👤 Personalized For You", callback_data: "personal_recommendations" }],
-    [{ text: "🍃 Tailored to Your Health", callback_data: "health_recommendations" }],
+    [{ text: "🍃 Food Based on Your Health", callback_data: "health_recommendations" }],
     [{ text: "🍽️ I Know What I Want", callback_data: "direct_order" }],
     [{ text: "🔍 Recommend Something", callback_data: "special_request" }]
   ];
@@ -3639,7 +3639,7 @@ async function finalizeOrder(
 }
 
 /**
- * Handle health recommendations request
+ * Handle food recommendations based on health data request
  */
 async function handleHealthRecommendations(
   bot: TelegramBot, 
@@ -3730,7 +3730,7 @@ async function handleHealthRecommendations(
     if (healthRecommendation.recommendedItems.length > 0) {
       await bot.sendMessage(
         chatId,
-        "*Ready to order?* Here are your health-optimized recommendations:",
+        "*Ready to order?* Here are your health-based food recommendations:",
         { parse_mode: 'Markdown' }
       );
       
@@ -3849,7 +3849,7 @@ async function handleHealthDeviceConnection(
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [{ text: "🍃 Get Health Recommendations", callback_data: "health_recommendations" }],
+              [{ text: "🍃 Food Recommendations Based on Health", callback_data: "health_recommendations" }],
               [{ text: "⚙️ Health Settings", callback_data: "health_settings" }],
               [{ text: "🍔 Browse Menu", callback_data: "menu" }]
             ]
