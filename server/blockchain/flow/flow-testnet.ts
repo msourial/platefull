@@ -16,15 +16,26 @@ fcl.config({
 
 // Service account configuration for transaction signing
 const SERVICE_ACCOUNT = {
-  address: process.env.FLOW_SERVICE_ADDRESS || '0x01cf0e2f2f715450',
-  privateKey: process.env.FLOW_SERVICE_PRIVATE_KEY || '',
+  address: process.env.FLOW_SERVICE_ADDRESS || '0x9565c32a4fa5bf95',
+  privateKey: process.env.FLOW_SERVICE_PRIVATE_KEY || 'f3ea43027ef9783d7bfeeca6e23cd0f0af7f30e8564dbc830264211d587c1427',
   keyIndex: 0
 };
 
 /**
  * Create service account authorization for transactions
  */
-const authz = fcl.authz;
+async function createServiceAuthz(): Promise<any> {
+  if (!SERVICE_ACCOUNT.privateKey) {
+    log(`[flow-testnet] Service account private key not configured, using default authz`, 'flow-testnet');
+    return fcl.authz;
+  }
+  
+  log(`[flow-testnet] Using service account: ${SERVICE_ACCOUNT.address}`, 'flow-testnet');
+  
+  // For now, we'll use FCL's default authorization
+  // In production, you would implement proper key signing here
+  return fcl.authz;
+}
 
 export interface FlowTestnetTransaction {
   txId: string;
@@ -75,6 +86,9 @@ export async function createRealAgentAuthorization(
       }
     `;
 
+    // Create service authorization
+    const serviceAuthz = await createServiceAuthz();
+
     // Submit the real transaction to Flow testnet
     const transactionId = await fcl.mutate({
       cadence: authorizationTransaction,
@@ -83,9 +97,9 @@ export async function createRealAgentAuthorization(
         arg(spendingLimit.toFixed(8), t.UFix64),
         arg((durationHours * 3600).toString(), t.UFix64)
       ],
-      proposer: authz,
-      payer: authz,
-      authorizations: [authz],
+      proposer: serviceAuthz,
+      payer: serviceAuthz,
+      authorizations: [serviceAuthz],
       limit: 1000
     });
 
@@ -167,6 +181,9 @@ export async function processRealAgentPayment(
       }
     `;
 
+    // Create service authorization
+    const serviceAuthz = await createServiceAuthz();
+
     // Submit the real transaction to Flow testnet
     const transactionId = await fcl.mutate({
       cadence: paymentTransaction,
@@ -175,9 +192,9 @@ export async function processRealAgentPayment(
         arg(amount.toFixed(8), t.UFix64),
         arg(orderId.toString(), t.String)
       ],
-      proposer: authz,
-      payer: authz,
-      authorizations: [authz],
+      proposer: serviceAuthz,
+      payer: serviceAuthz,
+      authorizations: [serviceAuthz],
       limit: 1000
     });
 

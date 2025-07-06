@@ -258,6 +258,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Flow testnet verification endpoint
+  app.get('/api/flow/testnet/verify', async (req, res) => {
+    try {
+      const { verifyFlowTestnetCredentials } = await import('./blockchain/flow/testnet-verification.js');
+      const results = await verifyFlowTestnetCredentials();
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to verify testnet credentials' });
+    }
+  });
+
+  // Flow testnet payment test endpoint
+  app.post('/api/flow/testnet/test-payment', async (req, res) => {
+    try {
+      const { testRealFlowPayment } = await import('./blockchain/flow/testnet-verification.js');
+      const results = await testRealFlowPayment();
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to test payment' });
+    }
+  });
+
   // Flow AI agent authorization endpoints
   app.post("/api/flow/authorize-agent", async (req, res) => {
     try {
