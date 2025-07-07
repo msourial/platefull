@@ -37,7 +37,7 @@
 - **🤖 Flow AI Agent Health Analysis**: Specialized Anthropic Claude 4.0 agent for health-based food recommendations
 - **📊 Real-time Health Metrics**: Integration with sleep quality, HRV, stress levels, activity, and recovery scores
 - **🎯 Personalized Food Selection**: AI analyzes current health status to suggest optimal food choices
-- **🔒 Privacy-First Design**: Filecoin ZK programmable storage for secure health data management
+- **🔒 ZK & Filecoin Storage**: Leverages Filecoin for decentralized storage and Zero-Knowledge (ZK) proofs to secure sensitive health data pulled from trackers.
 - **💡 Intelligent Recommendations**: Detailed explanations for why specific foods are recommended based on health metrics
 - **⏰ Contextual Timing**: Recommendations adapt based on time of day and current health state
 
