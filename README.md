@@ -31,6 +31,16 @@
 - **💬 Conversation Context**: Stateful multi-turn conversations with memory
 - **🍽️ Order Customization**: Interactive menu item customization with AI assistance
 
+### 🏥 Health Tracker Integration & AI-Powered Nutrition
+- **📱 Apple HealthKit Integration**: Seamless connection to iPhone and Apple Watch health data
+- **🗣️ Natural Language Health Requests**: Users can simply say "I want a customized lunch based on my HealthKit data"
+- **🤖 Flow AI Agent Health Analysis**: Specialized Anthropic Claude 4.0 agent for health-based food recommendations
+- **📊 Real-time Health Metrics**: Integration with sleep quality, HRV, stress levels, activity, and recovery scores
+- **🎯 Personalized Food Selection**: AI analyzes current health status to suggest optimal food choices
+- **🔒 Privacy-First Design**: Filecoin ZK programmable storage for secure health data management
+- **💡 Intelligent Recommendations**: Detailed explanations for why specific foods are recommended based on health metrics
+- **⏰ Contextual Timing**: Recommendations adapt based on time of day and current health state
+
 ### ⛓️ Blockchain Integration (Flow)
 - **🪙 BPTS Fungible Token Loyalty System**: BoustanPoints (BPTS) as Flow blockchain tokens
 - **💰 Dynamic Reward Structure**: 10 BPTS per $1 spent with 1.5x bonus for orders over $50
@@ -144,6 +154,106 @@ interface FoodRecommendationResponse {
 }
 ```
 
+## 🏥 Health-Based Food Selection with Natural Language
+
+### 🗣️ Natural Language Health Requests
+Users can request personalized meals using natural language that combines health context with food preferences. The system uses advanced NLP to detect health-related meal requests and routes them to the specialized health AI agent.
+
+#### 📝 Example Natural Language Requests:
+```
+"I want a customized lunch based on my HealthKit data"
+"Can you suggest dinner based on my current health metrics?"
+"I'd like a personalized meal recommendation using my health tracker data"
+"What should I eat for breakfast based on my Apple Watch data?"
+"Give me food suggestions based on my current wellness metrics"
+"I want a meal tailored to my health condition today"
+```
+
+### 🧠 AI Health Analysis Process
+1. **📊 Health Data Retrieval**: System fetches real-time metrics from connected devices
+2. **🤖 AI Analysis**: Anthropic Claude 4.0 analyzes health patterns and current state
+3. **🍽️ Food Matching**: AI matches health needs with available menu items
+4. **💡 Personalized Recommendations**: Provides detailed explanations for each suggestion
+5. **⏰ Contextual Timing**: Considers time of day and meal timing for optimal nutrition
+
+### 📱 Supported Health Metrics
+- **❤️ Heart Rate Variability (HRV)**: Stress and recovery assessment
+- **😴 Sleep Quality**: Rest duration and sleep debt analysis
+- **🏃 Activity Levels**: Exercise intensity and caloric burn
+- **💧 Hydration Status**: Fluid intake tracking
+- **⚡ Energy Levels**: Fatigue and alertness patterns
+- **🧘 Stress Indicators**: Mental wellness and tension levels
+
+### 🎯 Personalized Recommendation Engine
+```typescript
+interface HealthBasedRecommendation {
+  recommendedItems: {
+    name: string;
+    category: string;
+    healthBenefits: string[];
+    whyRecommended: string;
+  }[];
+  avoidItems: string[];
+  mealTiming: string;
+  explanation: string;
+  confidence: number;
+}
+```
+
+### 💬 Conversation Flow Example
+```
+User: "I want a customized lunch based on my HealthKit data"
+
+Bot: "I'll analyze your current health metrics to suggest the perfect lunch! 📊
+
+Your Health Status:
+❤️ HRV: 45ms (good recovery)
+😴 Sleep: 7.2hrs (well-rested)
+🏃 Activity: High intensity workout this morning
+💧 Hydration: 85% of daily goal
+
+Recommended for you:
+🥗 Mediterranean Bowl - High protein for muscle recovery
+🐟 Grilled Salmon Plate - Omega-3s for inflammation reduction
+🥑 Quinoa Power Bowl - Complex carbs for sustained energy
+
+Why these choices?
+After your intense workout, your body needs protein for muscle repair and healthy fats for inflammation control. Your good sleep and HRV indicate you can handle complex carbs for sustained afternoon energy."
+```
+
+### 🔒 Privacy & Security
+- **🛡️ Zero-Knowledge Storage**: Health data encrypted with Filecoin ZK proofs
+- **🔐 Local Processing**: Sensitive metrics processed securely on-device
+- **🚫 No Data Selling**: Health information never shared with third parties
+- **✅ User Control**: Complete control over data sharing and deletion
+
+### 🚀 Getting Started with Health-Based Food Selection
+
+#### 1️⃣ Connect Your Health Tracker
+```
+Start Telegram bot → Choose "🍃 Food Based on Your Health" → Connect Apple HealthKit
+```
+
+#### 2️⃣ Use Natural Language Requests
+Simply type your request in natural language:
+- "I want a customized lunch based on my HealthKit data"
+- "Suggest dinner based on my current health metrics"
+- "What should I eat based on my Apple Watch data?"
+
+#### 3️⃣ Receive Personalized Recommendations
+The AI analyzes your health metrics and provides:
+- Specific menu item recommendations
+- Detailed explanations for each suggestion
+- Health benefits of recommended foods
+- Items to avoid based on current state
+
+#### 4️⃣ Order with One-Tap
+Select recommended items and proceed with:
+- Traditional payment methods
+- Flow cryptocurrency
+- PYUSD stablecoin
+- AI agent automated payments
+
 ## ⛓️ Blockchain Integration (Flow)
 
 ### 🪙 BPTS Fungible Token System
@@ -229,6 +339,14 @@ GET    /api/flow/balance/:address  - 💰 Flow token balance
 POST   /api/flow/payment          - 💳 Process Flow payment
 GET    /api/flow/wallet-page      - 💼 Wallet connection interface
 POST   /api/flow/wallet-connected - 🔗 Wallet connection callback
+```
+
+### 🏥 Apple HealthKit Integration
+```
+POST   /api/healthkit/authorize      - 🔐 Apple HealthKit authorization
+GET    /api/healthkit/samples/:userId - 📊 Retrieve health data samples
+GET    /api/healthkit/authorization/:userId - ✅ Check authorization status
+POST   /api/healthkit/revoke/:userId - 🚫 Revoke HealthKit permissions
 ```
 
 ### 🪙 BPTS Loyalty System
